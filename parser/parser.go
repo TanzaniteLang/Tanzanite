@@ -5,6 +5,7 @@ import (
     "codeberg.org/Tanzanite/Tanzanite/tokens"
     "codeberg.org/Tanzanite/Tanzanite/lexer"
     "codeberg.org/Tanzanite/Tanzanite/ast"
+    "codeberg.org/Tanzanite/Tanzanite/env"
 )
 
 type Token struct {
@@ -15,11 +16,13 @@ type Token struct {
 
 type Parser struct {
     tokens []Token
+    env env.Environment
 }
 
 func NewParser() *Parser {
     return &Parser{
         tokens: make([]Token, 0),
+        env: env.NewEnv(),
     }
 }
 
@@ -54,16 +57,28 @@ func (p *Parser) ProduceAST(code string) ast.Program {
     prog := ast.Program {Body: make([]ast.Statement, 0)}
 
     for p.notEof() {
-        prog.Body = append(prog.Body, p.parseStatement())
+        prog.Body = append(prog.Body, p.parseStatement(&p.env))
     }
 
     return prog
 }
 
-func (p *Parser) parseStatement() ast.Statement {
+func (p *Parser) parseStatement(e *env.Environment) ast.Statement {
     switch p.current().Info {
     case tokens.Identifier:
-        return p.parseVarDeclaration()
+        val, ok := e.Vars[p.current().Text]
+        if !ok {
+            stmt := p.parseVarDeclaration().(ast.VarDeclaration)
+            e.Vars[stmt.Name] = &stmt
+            return stmt
+        }
+
+        p.consume()
+        p.consume()
+        return ast.AssignExpr{
+            Name: val,
+            Value: p.parseExpression(),
+        }
     default:
         return p.parseExpression()
     }
@@ -75,6 +90,7 @@ func (p *Parser) parseExpression() ast.Expression {
 
 func (p *Parser) parseVarDeclaration() ast.Statement {
     ident := p.consume()
+
 
     if p.current().Info == tokens.Colon {
         p.consume()
@@ -89,6 +105,13 @@ func (p *Parser) parseVarDeclaration() ast.Statement {
                 Type: varType.Text,
                 Value: p.parseExpression(),
             }
+        }
+    } else if p.current().Info == tokens.Assign {
+        p.consume()
+        return ast.VarDeclaration{
+            Name: ident.Text,
+            Type: "??",
+            Value: p.parseExpression(),
         }
     }
 

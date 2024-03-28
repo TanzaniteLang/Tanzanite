@@ -8,6 +8,7 @@ const (
     IdentifierType
     BinaryExprType
     VarDeclarationType
+    AssignExprType
 )
 
 type Statement interface {
@@ -58,6 +59,15 @@ type VarDeclaration struct {
     Name string
     Type string
     Value Expression
+}
+
+type AssignExpr struct {
+    Name Expression
+    Value Expression
+}
+
+func (a AssignExpr) GetKind() NodeType {
+    return AssignExprType
 }
 
 func (v VarDeclaration) GetKind() NodeType {
