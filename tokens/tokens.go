@@ -184,6 +184,7 @@ var tokens = []string{
 	RSquiglyBracket:      "}",
 	Do:                   "do",
 	End:                  "end",
+    Eof:                  "EOF",
 	Then:                 "then",
 }
 

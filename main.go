@@ -1,22 +1,17 @@
 package main
 
 import (
-    "fmt"
-    "codeberg.org/Tanzanite/Tanzanite/tokens"
-    "codeberg.org/Tanzanite/Tanzanite/lexer"
+    "codeberg.org/Tanzanite/Tanzanite/parser"
+    "github.com/gookit/goutil/dump"
 )
 
 func main() {
-    lex := lexer.InitLexer(`fun hello(msg: *Char = "World")
-    puts "Hello, #{msg}!"
-end`)
+    par := parser.NewParser()
+    out := par.ProduceAST(`ahoj: Int = (7 + 4) * 2`)
 
-    for {
-        pos, tok, text := lex.Lex()
+    dump.Config(func (o *dump.Options) {
+        o.MaxDepth = 10
+    })
 
-        if tok == tokens.Eof {
-            break
-        }
-        fmt.Println(pos, tok.String(), text)
-    }
+    dump.Println(out)
 }
