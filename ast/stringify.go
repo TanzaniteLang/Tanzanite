@@ -37,7 +37,7 @@ func (b *BracketExpr) Stringify() string {
 }
 
 func (c *ConditionalExpr) Stringify() string {
-    return fmt.Sprintf("%s ? %s : %s", strExpr(c.Condition), strExpr(c.TrueExpr), strExpr(c.FalseExpr))
+    return fmt.Sprintf("(%s ? %s : %s)", strExpr(c.Condition), strExpr(c.TrueExpr), strExpr(c.FalseExpr))
 }
 
 func (f *ForwardPipeExpr) Stringify() string {

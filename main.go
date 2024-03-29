@@ -3,6 +3,7 @@ package main
 import (
     "fmt"
     "os"
+    "os/exec"
     "codeberg.org/Tanzanite/Tanzanite/parser"
     "codeberg.org/Tanzanite/Tanzanite/ast"
     "codeberg.org/Tanzanite/Tanzanite/ccg"
@@ -48,7 +49,23 @@ func main() {
     }
 
     if len(output) > 0 {
-        err := os.WriteFile(output, []byte(src.Generate()), 0666)
+        f, err := os.CreateTemp("/tmp/", output + ".*.c")
+        if err != nil {
+            fmt.Print(err)
+            os.Exit(1)
+        }
+        defer os.Remove(f.Name())
+
+        if _, err := f.Write([]byte(src.Generate())); err != nil {
+            fmt.Print(err)
+            os.Exit(1)
+        }
+
+        f.Close()
+
+        cmd := exec.Command("tcc", f.Name(), "-o", output)
+        err = cmd.Run()
+
         if err != nil {
             fmt.Print(err)
             os.Exit(1)
