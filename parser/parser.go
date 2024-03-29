@@ -102,10 +102,6 @@ func (p *Parser) parseStatement(e *env.Environment) ast.Statement {
     }
 }
 
-func (p *Parser) parseExpression() ast.Expression {
-    return p.parseAdditiveExpr()
-}
-
 func (p *Parser) parseFnCall(fndecl *ast.FunctionDecl) ast.FunctionCall {
     calle := p.parseExpression()
     args := make([]ast.Expression, 0)
@@ -216,21 +212,8 @@ func (p *Parser) parseType() []ast.Statement {
     return typeConstruct
 }
 
-func (p *Parser) parseMultiplicativeExpr() ast.Expression {
-    left := p.parsePrimaryExpr()
-
-    for p.current().Text == "/" || p.current().Text == "*" ||
-        p.current().Text == "%" {
-        operator := p.consume().Text
-        right := p.parsePrimaryExpr()
-        left = ast.BinaryExpr{
-            Left: left,
-            Right: right,
-            Operator: operator,
-        }
-    }
-
-    return left
+func (p *Parser) parseExpression() ast.Expression {
+    return p.parseConditionalExpr()
 }
 
 func (p *Parser) parseAdditiveExpr() ast.Expression {
@@ -247,6 +230,192 @@ func (p *Parser) parseAdditiveExpr() ast.Expression {
     }
 
     return left
+}
+
+func (p *Parser) parseMultiplicativeExpr() ast.Expression {
+    left := p.parsePrimaryExpr()
+
+    for p.current().Text == "/" ||
+        p.current().Text == "*" ||
+        p.current().Text == "**" ||
+        p.current().Text == "//" ||
+        p.current().Text == "%" {
+        operator := p.consume().Text
+        right := p.parsePrimaryExpr()
+        left = ast.BinaryExpr{
+            Left: left,
+            Right: right,
+            Operator: operator,
+        }
+    }
+
+    return left
+}
+
+func (p *Parser) parseShiftExpr() ast.Expression {
+    left := p.parseAdditiveExpr()
+
+    for p.current().Text == "<<" || p.current().Text == ">>" {
+        operator := p.consume().Text
+        right := p.parseAdditiveExpr()
+        left = ast.BinaryExpr{
+            Left: left,
+            Right: right,
+            Operator: operator,
+        }
+    }
+
+    return left
+}
+
+func (p *Parser) parseComparativeExpr() ast.Expression {
+    left := p.parseShiftExpr()
+
+    for p.current().Text == "<" ||
+        p.current().Text == "<=" ||
+        p.current().Text == ">" ||
+        p.current().Text == ">=" {
+        operator := p.consume().Text
+        right := p.parseShiftExpr()
+        left = ast.BinaryExpr{
+            Left: left,
+            Right: right,
+            Operator: operator,
+        }
+    }
+
+    return left
+}
+
+func (p *Parser) parseEqaulityExpr() ast.Expression {
+    left := p.parseComparativeExpr()
+
+    for p.current().Text == "==" ||
+        p.current().Text == "!=" {
+        operator := p.consume().Text
+        right := p.parseComparativeExpr()
+        left = ast.BinaryExpr{
+            Left: left,
+            Right: right,
+            Operator: operator,
+        }
+    }
+
+    return left
+}
+
+func (p *Parser) parseBitwiseAndExpr() ast.Expression {
+    left := p.parseEqaulityExpr()
+
+    for p.current().Text == "&" {
+        operator := p.consume().Text
+        right := p.parseEqaulityExpr()
+        left = ast.BinaryExpr{
+            Left: left,
+            Right: right,
+            Operator: operator,
+        }
+    }
+
+    return left
+}
+
+func (p *Parser) parseBitwiseXorExpr() ast.Expression {
+    left := p.parseEqaulityExpr()
+
+    for p.current().Text == "^" {
+        operator := p.consume().Text
+        right := p.parseEqaulityExpr()
+        left = ast.BinaryExpr{
+            Left: left,
+            Right: right,
+            Operator: operator,
+        }
+    }
+
+    return left
+}
+
+func (p *Parser) parseBitwiseOrExpr() ast.Expression {
+    left := p.parseBitwiseXorExpr()
+
+    for p.current().Text == "|" {
+        operator := p.consume().Text
+        right := p.parseBitwiseXorExpr()
+        left = ast.BinaryExpr{
+            Left: left,
+            Right: right,
+            Operator: operator,
+        }
+    }
+
+    return left
+}
+
+func (p *Parser) parseLogicalAndExpr() ast.Expression {
+    left := p.parseBitwiseOrExpr()
+
+    for p.current().Text == "&&" {
+        operator := p.consume().Text
+        right := p.parseBitwiseOrExpr()
+        left = ast.BinaryExpr{
+            Left: left,
+            Right: right,
+            Operator: operator,
+        }
+    }
+
+    return left
+}
+
+func (p *Parser) parseLogicalOrExpr() ast.Expression {
+    left := p.parseLogicalAndExpr()
+
+    for p.current().Text == "||" {
+        operator := p.consume().Text
+        right := p.parseLogicalAndExpr()
+        left = ast.BinaryExpr{
+            Left: left,
+            Right: right,
+            Operator: operator,
+        }
+    }
+
+    return left
+}
+
+func (p *Parser) parseConditionalExpr() ast.Expression {
+    condition := p.parseLogicalOrExpr()
+
+    if p.current().Text == "?" {
+        p.consume()
+
+        trueExpr := p.parseExpression()
+
+        if p.current().Text != ":" {
+            panic("Missing :")
+        }
+        p.consume()
+
+        falseExpr := p.parseConditionalExpr()
+        return ast.ConditionalExpr{
+            Condition: condition,
+            TrueExpr: trueExpr,
+            FalseExpr: falseExpr,
+        }
+    }
+
+    return condition
+}
+
+func (p *Parser) parseUnaryExpr() ast.Expression {
+    operator := p.consume().Text
+    operand := p.parseExpression()
+
+    return ast.UnaryExpr{
+        Operator: operator,
+        Operand: operand,
+    }
 }
 
 func (p *Parser) parsePrimaryExpr() ast.Expression {
@@ -272,6 +441,20 @@ func (p *Parser) parsePrimaryExpr() ast.Expression {
         defer p.consume()
         
         return p.parseExpression()
+    case tokens.Plus:
+        return p.parseUnaryExpr()
+    case tokens.Minus:
+        return p.parseUnaryExpr()
+    case tokens.Bang:
+        return p.parseUnaryExpr()
+    case tokens.Tilda:
+        return p.parseUnaryExpr()
+    case tokens.Ampersand:
+        return p.parseUnaryExpr()
+    case tokens.Asterisk:
+        return p.parseUnaryExpr()
+    case tokens.Sizeof:
+        return p.parseUnaryExpr()
     }
 
     return nil

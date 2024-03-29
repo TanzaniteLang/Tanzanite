@@ -6,6 +6,7 @@ import (
     "codeberg.org/Tanzanite/Tanzanite/parser"
     "codeberg.org/Tanzanite/Tanzanite/ast"
     "codeberg.org/Tanzanite/Tanzanite/ccg"
+    "github.com/gookit/goutil/dump"
 )
 
 func main() {
@@ -25,6 +26,15 @@ func main() {
 
     par := parser.NewParser()
     out := par.ProduceAST(string(code))
+
+    dump.Config(func (o *dump.Options) {
+        o.MaxDepth = 10
+    })
+
+    dump.Println(out)
+
+    // TODO: Once parser is mostly finished 
+    os.Exit(0)
 
     output := ""
 

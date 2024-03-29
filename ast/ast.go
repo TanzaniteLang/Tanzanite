@@ -23,6 +23,9 @@ const (
     FunctionDeclType = 11
     FunctionCallType = 12
     ReturnExprType = 13
+
+    ConditionalExprType = 14
+    UnaryExprType = 15
 )
 
 type Statement interface {
@@ -34,6 +37,25 @@ type Program struct {
 }
 
 type Expression Statement
+
+type ConditionalExpr struct {
+    Condition Expression
+    TrueExpr Expression
+    FalseExpr Expression
+}
+
+func (c ConditionalExpr) GetKind() NodeType {
+    return ConditionalExprType
+}
+
+type UnaryExpr struct {
+    Operator string
+    Operand Expression
+}
+
+func (u UnaryExpr) GetKind() NodeType {
+    return UnaryExprType
+}
 
 type BinaryExpr struct {
     Left Expression

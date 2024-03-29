@@ -1,7 +1,1 @@
-fun printf(format: Char*, ...): Int
-end
-
-fun main(argc: Int, argv: Char**): Int 
-  printf "Hello World! Argc: %d, Argv %p, 3 + 4 = %d\n", argc, argv, 3 + 4;
-  return 0
-end
+1 || 0 ? 0 : 5 | 4 == 5 > 1 >> 4 + 1 >> -2
