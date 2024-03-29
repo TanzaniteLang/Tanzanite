@@ -15,6 +15,8 @@ const (
     FunctionArgType
     VariadicArgType
     FunctionDeclType
+    FunctionCallType
+    ReturnExprType
 )
 
 type Statement interface {
@@ -101,6 +103,23 @@ type FunctionDecl struct {
 
 func (f FunctionDecl) GetKind() NodeType {
     return FunctionDeclType
+}
+
+type FunctionCall struct {
+    Calle Expression
+    Args []Expression
+}
+
+func (f FunctionCall) GetKind() NodeType {
+    return FunctionCallType
+}
+
+type ReturnExpr struct {
+    Value Expression
+}
+
+func (r ReturnExpr) GetKind() NodeType {
+    return ReturnExprType
 }
 
 type AssignExpr struct {

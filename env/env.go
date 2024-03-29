@@ -13,6 +13,6 @@ type Environment struct {
 func NewEnv() Environment {
     return Environment {
         Vars: make(map[string]*ast.VarDeclaration),
-        Fns: make(map[string]*ast.FunctionDelc),
+        Fns: make(map[string]*ast.FunctionDecl),
     }
 }

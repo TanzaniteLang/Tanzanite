@@ -69,8 +69,21 @@ func (p *Parser) parseStatement(e *env.Environment) ast.Statement {
         panic("Def functions are not yet implemented!")
     case tokens.Fun:
         p.consume()
-        return p.parseFunction(true)
+        fn := p.parseFunction(true).(ast.FunctionDecl)
+        e.Fns[fn.Name] = &fn
+
+        return fn
+    case tokens.Return:
+        p.consume()
+        return ast.ReturnExpr{
+            Value: p.parseExpression(),
+        }
     case tokens.Identifier:
+        fn, ok := e.Fns[p.current().Text]
+        if ok { // This is a function call
+            return p.parseFnCall(fn)
+        }
+
         val, ok := e.Vars[p.current().Text]
         if !ok {
             stmt := p.parseVarDeclaration().(ast.VarDeclaration)
@@ -91,6 +104,22 @@ func (p *Parser) parseStatement(e *env.Environment) ast.Statement {
 
 func (p *Parser) parseExpression() ast.Expression {
     return p.parseAdditiveExpr()
+}
+
+func (p *Parser) parseFnCall(fndecl *ast.FunctionDecl) ast.FunctionCall {
+    calle := p.parseExpression()
+    args := make([]ast.Expression, 0)
+
+    current := p.consume().Info
+    for current != tokens.Semicolon {
+        args = append(args, p.parseExpression())
+        current = p.consume().Info
+    }
+
+    return ast.FunctionCall{
+        Calle: calle,
+        Args: args,
+    }
 }
 
 func (p *Parser) parseFunction(isFun bool) ast.Statement {
@@ -125,6 +154,7 @@ func (p *Parser) parseFunction(isFun bool) ast.Statement {
     current = p.current()
     for current.Info != tokens.End {
         fn.Body = append(fn.Body, p.parseStatement(&p.env))
+        current = p.current()
     }
     p.consume()
 
