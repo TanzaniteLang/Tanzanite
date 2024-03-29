@@ -13,8 +13,8 @@ func main() {
     cmdArgs := os.Args[1:]
 
     if len(cmdArgs) != 1 && len(cmdArgs) != 3 {
-        fmt.Println("Expected only 1 or 3 arguments!")
-        fmt.Println("help: tanzanite [file] (-o [output])")
+        fmt.Fprintln(os.Stderr, "Expected only 1 or 3 arguments!")
+        fmt.Fprintln(os.Stderr, "help: tanzanite [file] (-o [output])")
         os.Exit(1)
     }
 
@@ -31,10 +31,7 @@ func main() {
         o.MaxDepth = 100
     })
 
-    dump.Println(out)
-
-    // TODO: Once parser is mostly finished 
-    os.Exit(0)
+    // dump.Println(out)
 
     output := ""
 

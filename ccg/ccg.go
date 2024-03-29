@@ -15,22 +15,30 @@ func NewSource(name string) *Source {
     return &Source{
         Name: name,
         Functions: make([]ast.FunctionDecl, 0),
-        source: "",
+        // Tanzanite boilerplate
+        source: `#define true 1
+#define false 0
+#define Bool _Bool
+#define Char char
+#define Int int
+#define Float float
+
+`,
     }
 }
 
 func (s *Source) Generate() string {
     for _, fn := range s.Functions {
-        s.source += fn.GenDecl() + ";\n"
+        s.source += fn.StringifyHead() + ";\n"
     }
 
     s.source += "\n"
 
     for _, fn := range s.Functions {
         if len(fn.Body) > 0 {
-            s.source += fn.GenDecl() + " {\n" + fn.GenBody() + "}\n"
+            s.source += fn.Stringify() + "\n"
         }
     }
 
-    return s.source
+    return s.source[:len(s.source) - 2]
 }

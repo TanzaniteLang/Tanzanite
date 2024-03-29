@@ -1,0 +1,155 @@
+package ast
+
+import (
+    "fmt"
+    "strings"
+)
+
+func (b *BinaryExpr) Stringify() string {
+    return fmt.Sprintf("%s %s %s", strExpr(b.Left), b.Operator, strExpr(b.Right))
+}
+
+func (u *UnaryExpr) Stringify() string {
+    return fmt.Sprintf("%s%s", u.Operator, strExpr(u.Operand))
+}
+
+func (v *VarDeclaration) Stringify() string {
+    if v.Value != nil {
+        return fmt.Sprintf("%s %s = %s", strType(v.Type), v.Name, strExpr(v.Value))
+    }
+    return fmt.Sprintf("%s %s", strType(v.Type), v.Name)
+}
+
+func (v *VarDeclaration) StringifyAsArg() string {
+    return fmt.Sprintf("%s %s", strType(v.Type), v.Name)
+}
+
+func (a *AssignExpr) Stringify() string {
+    return fmt.Sprintf("%s %s %s", strExpr(a.Name), a.Operator, strExpr(a.Value))
+}
+
+func (r *ReturnExpr) Stringify() string {
+    return fmt.Sprintf("return %s", strExpr(r.Value))
+}
+
+func (b *BracketExpr) Stringify() string {
+    return fmt.Sprintf("(%s)", strExpr(b.Expr))
+}
+
+func (c *ConditionalExpr) Stringify() string {
+    return fmt.Sprintf("%s ? %s : %s", strExpr(c.Condition), strExpr(c.TrueExpr), strExpr(c.FalseExpr))
+}
+
+func (f *ForwardPipeExpr) Stringify() string {
+    return fmt.Sprintf("%s(%s)", strExpr(f.Target), strExpr(f.Value))
+}
+
+func (f *FunctionDecl) StringifyHead() string {
+    text := strType(f.ReturnType) + " " + f.Name + "("
+
+    for _, arg := range f.Arguments {
+        if arg.GetKind() == VarDeclarationType {
+            expr := arg.(VarDeclaration)
+            text += expr.StringifyAsArg()
+        } else if arg.GetKind() == VariadicArgType {
+            text += "..."
+        }
+
+        text += ", "
+    }
+
+    return strings.TrimSuffix(text, ", ") + ")"
+}
+
+func (f *FunctionDecl) StringifyBody() string {
+    body := ""
+
+    for _, stmt := range f.Body {
+        body += strExpr(stmt) + ";\n"
+    }
+
+    return body
+}
+
+func (f *FunctionDecl) Stringify() string {
+    return f.StringifyHead() + " {\n" + f.StringifyBody() + "}\n"
+}
+
+func (f *FunctionCall) StringifyArgs() string {
+    args := ""
+    for _, arg := range f.Args {
+        args += strExpr(arg) + ", "
+    }
+
+    return strings.TrimSuffix(args, ", ")
+}
+
+func (f *FunctionCall) Stringify() string {
+    return fmt.Sprintf("%s(%s)", strExpr(f.Calle), f.StringifyArgs())
+}
+
+func strExpr(e Expression) string {
+    switch (e.GetKind()) {
+        // Types
+    case IntLiteralType:
+        return fmt.Sprintf("%d", e.(IntLiteral).Value)
+    case FloatLiteralType:
+        return fmt.Sprintf("%f", e.(FloatLiteral).Value)
+    case StringType:
+        return "\"" + e.(String).Value + "\""
+    case BoolType:
+        panic("Bool not yet implemented")
+    case PointerType:
+        return "*"
+    case IdentifierType:
+        return e.(Identifier).Symbol
+
+        // Expressions
+    case BinaryExprType:
+        expr := e.(BinaryExpr)
+        return expr.Stringify()
+    case UnaryExprType:
+        expr := e.(UnaryExpr)
+        return expr.Stringify()
+    case VarDeclarationType:
+        expr := e.(VarDeclaration)
+        return expr.Stringify()
+    case AssignExprType:
+        expr := e.(AssignExpr)
+        return expr.Stringify()
+    case ReturnExprType:
+        expr := e.(ReturnExpr)
+        return expr.Stringify()
+    case BracketExprType:
+        expr := e.(BracketExpr)
+        return expr.Stringify()
+    case ConditionalExprType:
+        expr := e.(ConditionalExpr)
+        return expr.Stringify()
+    case ForwardPipeExprType:
+        expr := e.(ForwardPipeExpr)
+        return expr.Stringify()
+
+        // Functions
+    case VariadicArgType:
+        return "..."
+    case FunctionDeclType:
+        expr := e.(FunctionDecl)
+        return expr.Stringify()
+    case FunctionCallType:
+        expr := e.(FunctionCall)
+        return expr.Stringify()
+    default:
+        return ""
+    }
+}
+
+func strType(t []Statement) string {
+    text := ""
+
+    for _, part := range t {
+        text += strExpr(part)
+    }
+
+    return text
+}
