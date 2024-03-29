@@ -6,9 +6,15 @@ const (
     ProgramType = 0
     NumericLiteralType
     IdentifierType
+    StringType
+    PointerType
     BinaryExprType
     VarDeclarationType
     AssignExprType
+
+    FunctionArgType
+    VariadicArgType
+    FunctionDeclType
 )
 
 type Statement interface {
@@ -55,15 +61,57 @@ func (f FloatLiteral) GetKind() NodeType {
     return NumericLiteralType
 }
 
+type String struct {
+    Value string
+}
+
+func (s String) GetKind() NodeType {
+    return StringType
+}
+
 type VarDeclaration struct {
     Name string
-    Type string
+    Type []Statement
     Value Expression
+}
+
+type VariadicArg struct {}
+
+func (v VariadicArg) GetKind() NodeType {
+    return VariadicArgType
+}
+
+type FunctionArg struct {
+    Name string
+    Type []Statement
+    Value Expression
+}
+
+func (f FunctionArg) GetKind() NodeType {
+    return FunctionArgType
+}
+
+type FunctionDecl struct {
+    Name string
+    Arguments []Statement
+    ReturnType []Statement
+    Immutable bool // True if this is FUN function
+    Body []Statement
+}
+
+func (f FunctionDecl) GetKind() NodeType {
+    return FunctionDeclType
 }
 
 type AssignExpr struct {
     Name Expression
     Value Expression
+}
+
+type Pointer struct {}
+
+func (p Pointer) GetKind() NodeType {
+    return PointerType
 }
 
 func (a AssignExpr) GetKind() NodeType {

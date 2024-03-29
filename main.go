@@ -7,8 +7,8 @@ import (
 
 func main() {
     par := parser.NewParser()
-    out := par.ProduceAST(`ahoj = (7 + 4) * 2
-ahoj = 4`)
+    out := par.ProduceAST(`fun printf(format: Char*, ...): Int
+end`)
 
     dump.Config(func (o *dump.Options) {
         o.MaxDepth = 10

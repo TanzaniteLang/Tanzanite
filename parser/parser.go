@@ -65,6 +65,11 @@ func (p *Parser) ProduceAST(code string) ast.Program {
 
 func (p *Parser) parseStatement(e *env.Environment) ast.Statement {
     switch p.current().Info {
+    case tokens.Def:
+        panic("Def functions are not yet implemented!")
+    case tokens.Fun:
+        p.consume()
+        return p.parseFunction(true)
     case tokens.Identifier:
         val, ok := e.Vars[p.current().Text]
         if !ok {
@@ -88,34 +93,97 @@ func (p *Parser) parseExpression() ast.Expression {
     return p.parseAdditiveExpr()
 }
 
+func (p *Parser) parseFunction(isFun bool) ast.Statement {
+    name := p.consume()
+    current := p.consume()
+    args := make([]ast.Statement, 0)
+    returnType := make([]ast.Statement, 0)
+
+    for current.Info != tokens.RBracket {
+        if current.Info == tokens.Dot {
+            p.consume()
+            args = append(args, ast.VariadicArg{})
+        } else {
+            args = append(args, p.parseVarDeclaration())
+        }
+        current = p.consume()
+    }
+
+    if p.current().Info == tokens.Colon {
+        p.consume()
+        returnType = p.parseType()
+    }
+
+    fn := ast.FunctionDecl {
+        Name: name.Text,
+        Arguments: args,
+        ReturnType: returnType,
+        Immutable: isFun,
+        Body: make([]ast.Statement, 0),
+    }
+
+    current = p.current()
+    for current.Info != tokens.End {
+        fn.Body = append(fn.Body, p.parseStatement(&p.env))
+    }
+    p.consume()
+
+    return fn
+}
+
 func (p *Parser) parseVarDeclaration() ast.Statement {
     ident := p.consume()
-
 
     if p.current().Info == tokens.Colon {
         p.consume()
 
-        varType := p.consume()
+        varType := p.parseType()
 
         if p.current().Info == tokens.Assign {
             p.consume()
 
             return ast.VarDeclaration{
                 Name: ident.Text,
-                Type: varType.Text,
+                Type: varType,
                 Value: p.parseExpression(),
+            }
+        } else {
+            return ast.VarDeclaration{
+                Name: ident.Text,
+                Type: varType,
+                Value: nil,
             }
         }
     } else if p.current().Info == tokens.Assign {
         p.consume()
         return ast.VarDeclaration{
             Name: ident.Text,
-            Type: "??",
+            Type: make([]ast.Statement, 0),
             Value: p.parseExpression(),
         }
     }
 
     return nil
+}
+
+func (p *Parser) parseType() []ast.Statement {
+    typeConstruct := make([]ast.Statement, 0)
+    typeConstruct = append(typeConstruct, ast.Identifier{Symbol: p.consume().Text})
+
+    current := p.current().Info
+    for current == tokens.Asterisk || current == tokens.DoubleAsterisk {
+        if current == tokens.DoubleAsterisk {
+            typeConstruct = append(typeConstruct, ast.Pointer{})
+            typeConstruct = append(typeConstruct, ast.Pointer{})
+        } else {
+            typeConstruct = append(typeConstruct, ast.Pointer{})
+        }
+        p.consume()
+
+        current = p.current().Info
+    }
+
+    return typeConstruct
 }
 
 func (p *Parser) parseMultiplicativeExpr() ast.Expression {
@@ -157,6 +225,8 @@ func (p *Parser) parsePrimaryExpr() ast.Expression {
     switch tok {
     case tokens.Identifier:
         return ast.Identifier{ Symbol: p.consume().Text }
+    case tokens.String:
+        return ast.String{ Value: p.consume().Text }
     case tokens.Float:
         val, _ := strconv.ParseFloat(p.consume().Text, 64)
         return ast.FloatLiteral{
