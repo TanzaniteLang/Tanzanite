@@ -213,7 +213,7 @@ func (p *Parser) parseType() []ast.Statement {
 }
 
 func (p *Parser) parseExpression() ast.Expression {
-    return p.parseConditionalExpr()
+    return p.parseForwardPipeExpr()
 }
 
 func (p *Parser) parseAdditiveExpr() ast.Expression {
@@ -406,6 +406,21 @@ func (p *Parser) parseConditionalExpr() ast.Expression {
     }
 
     return condition
+}
+
+func (p *Parser) parseForwardPipeExpr() ast.Expression {
+    value := p.parseConditionalExpr()
+
+    for p.current().Text == "|>" {
+        p.consume()
+        target := p.parsePrimaryExpr()
+        return ast.ForwardPipeExpr{
+            Value: value,
+            Target: target,
+        }
+    }
+
+    return value
 }
 
 func (p *Parser) parseUnaryExpr() ast.Expression {

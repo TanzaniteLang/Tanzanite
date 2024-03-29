@@ -26,6 +26,7 @@ const (
 
     ConditionalExprType = 14
     UnaryExprType = 15
+    ForwardPipeExprType = 16
 )
 
 type Statement interface {
@@ -69,6 +70,15 @@ func (b *BinaryExpr) Stringify() string {
 
 func (b BinaryExpr) GetKind() NodeType {
     return BinaryExprType
+}
+
+type ForwardPipeExpr struct {
+    Value Expression
+    Target Expression
+}
+
+func (f ForwardPipeExpr) GetKind() NodeType {
+    return ForwardPipeExprType
 }
 
 type Identifier struct {
