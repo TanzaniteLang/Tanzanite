@@ -1,1 +1,18 @@
-4 == 4 ? 5 : 0 |> (2 + 2 == 9 ? nine : four) |> hi
+fun printf(format: Char*, ...): Int
+end
+
+fun add(a: Int, b: Int): Int
+  return a + b
+end
+
+fun timesTwo(a: Int): Int
+  return a * 2
+end
+
+fun main(argc: Int, argv: Char**): Int 
+  printf("Hello World! Argc: %d, Argv %p, 3 + 4 = %d\n", argc, argv, 3 + 4)
+
+  printf("(2 + 2) + 3 = %d\n", add(2 |> 1 + 1 / 2 * 2 == 2 ? timesTwo : timesTwo, 3))
+
+  return 0
+end

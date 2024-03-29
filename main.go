@@ -28,7 +28,7 @@ func main() {
     out := par.ProduceAST(string(code))
 
     dump.Config(func (o *dump.Options) {
-        o.MaxDepth = 10
+        o.MaxDepth = 100
     })
 
     dump.Println(out)

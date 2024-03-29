@@ -27,6 +27,8 @@ const (
     ConditionalExprType = 14
     UnaryExprType = 15
     ForwardPipeExprType = 16
+
+    BracketExprType = 17
 )
 
 type Statement interface {
@@ -140,6 +142,7 @@ type FunctionDecl struct {
     Arguments []Statement
     ReturnType []Statement
     Immutable bool // True if this is FUN function
+    Variadic bool
     Body []Statement
 }
 
@@ -225,9 +228,18 @@ func (r ReturnExpr) GetKind() NodeType {
     return ReturnExprType
 }
 
+type BracketExpr struct {
+    Expr Expression
+}
+
+func (b BracketExpr) GetKind() NodeType {
+    return BracketExprType
+}
+
 type AssignExpr struct {
     Name Expression
     Value Expression
+    Operator string
 }
 
 type Pointer struct {}
