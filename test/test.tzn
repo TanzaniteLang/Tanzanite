@@ -1,0 +1,7 @@
+fun printf(format: Char*, ...): Int
+end
+
+fun main(argc: Int, argv: Char**): Int 
+  printf "Hello World! Argc: %d, Argv %p, 3 + 4 = %d\n", argc, argv, 3 + 4;
+  return 0
+end

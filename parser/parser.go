@@ -110,7 +110,7 @@ func (p *Parser) parseFnCall(fndecl *ast.FunctionDecl) ast.FunctionCall {
     calle := p.parseExpression()
     args := make([]ast.Expression, 0)
 
-    current := p.consume().Info
+    current := p.current().Info
     for current != tokens.Semicolon {
         args = append(args, p.parseExpression())
         current = p.consume().Info
