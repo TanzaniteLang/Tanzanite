@@ -5,6 +5,7 @@ import (
     "codeberg.org/Tanzanite/Tanzanite/lexer"
     "codeberg.org/Tanzanite/Tanzanite/ast"
     "codeberg.org/Tanzanite/Tanzanite/env"
+    "codeberg.org/Tanzanite/Tanzanite/debug"
 )
 
 type Token struct {
@@ -17,14 +18,16 @@ type Parser struct {
     tokens []Token
     env env.Environment
 
+    source string
     parsingFn bool // Breaks reccursion
 }
 
-func NewParser() *Parser {
+func NewParser(file string) *Parser {
     return &Parser{
         tokens: make([]Token, 0),
         env: env.NewEnv(),
         parsingFn: false,
+        source: file,
     }
 }
 
@@ -59,6 +62,7 @@ func (p *Parser) ProduceAST(code string) ast.Program {
     prog := ast.Program {Body: make([]ast.Statement, 0)}
 
     for p.notEof() {
+        prog.Debug = append(prog.Debug, debug.NewSourceLocation(p.source, p.current().Position.Line))
         prog.Body = append(prog.Body, p.parseStatement())
     }
 

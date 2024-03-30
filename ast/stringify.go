@@ -64,7 +64,8 @@ func (f *FunctionDecl) StringifyHead() string {
 func (f *FunctionDecl) StringifyBody() string {
     body := ""
 
-    for _, stmt := range f.Body {
+    for i, stmt := range f.Body {
+        body += f.Debug[i].Stringify() + "\n"
         body += strExpr(stmt) + ";\n"
     }
 
@@ -103,6 +104,8 @@ func strExpr(e Expression) string {
         return "*"
     case IdentifierType:
         return e.(Identifier).Symbol
+    case TypeLiteralType:
+        return e.(TypeLiteral).Type
 
         // Expressions
     case BinaryExprType:

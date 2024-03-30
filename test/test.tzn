@@ -1,20 +1,11 @@
 fun printf(format: Char*, ...): Int
 end
 
-fun scanf(format: Char*, ...): Int
+fun timesTwo(a: Int): Int
+  return a * 2
 end
 
 fun main(): Int
-  a: Int
-  b: Int
-
-  printf("Write first number: \n")
-  scanf("%d", &a)
-
-  printf("Write second number: \n")
-  scanf("%d", &b)
-
-  printf("a + b = c\n")
-  printf("%d + %d = %d\n", a, b, a + b)
+  printf("4 * 2 = %d\n", 4 |> timesTwo)
   return 0
 end

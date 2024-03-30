@@ -36,25 +36,29 @@ func (p *Parser) parsePrimaryExpr() ast.Expression {
             return p.parseFnCall(fn)
         }
         return ast.Identifier{ Symbol: p.consume().Text }
-    case tokens.String:
+    case tokens.Char:
+        return ast.TypeLiteral{ Type: p.consume().Text }
+    case tokens.StringVal:
         return ast.String{ Value: p.consume().Text }
-    case tokens.Float:
+    case tokens.FloatVal:
         val, _ := strconv.ParseFloat(p.consume().Text, 64)
         return ast.FloatLiteral{
             Value: val,
         }
-    case tokens.Int:
+    case tokens.IntVal:
         val, _ := strconv.ParseInt(p.consume().Text, 10, 64)
         return ast.IntLiteral{
             Value: val,
         }
     case tokens.LBracket:
         p.consume()
-        defer p.consume()
-        
-        return ast.BracketExpr{
+ 
+        val := ast.BracketExpr{
             Expr: p.parseExpression(),
         }
+        p.consume()
+
+        return val
     case tokens.Plus:
         return p.parseUnaryExpr()
     case tokens.Minus:

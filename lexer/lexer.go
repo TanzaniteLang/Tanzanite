@@ -117,7 +117,7 @@ func (l *Lexer) Lex() (tokens.Position, tokens.Token, string) {
         case '"':
             pos := l.pos
             text := l.parseString()
-            return pos, tokens.String, text
+            return pos, tokens.StringVal, text
         default:
             if unicode.IsSpace(current) {
                 continue
@@ -253,9 +253,9 @@ func (l *Lexer) parseNumber() (tokens.Token, string) {
 
     l.undo()
     if is_float {
-        return tokens.Float, text
+        return tokens.FloatVal, text
     } else {
-        return tokens.Int, text
+        return tokens.IntVal, text
     }
 }
 

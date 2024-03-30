@@ -16,6 +16,7 @@ func main() {
     if len(cmdArgs) != 1 && len(cmdArgs) != 3 {
         fmt.Fprintln(os.Stderr, "Expected only 1 or 3 arguments!")
         fmt.Fprintln(os.Stderr, "help: tanzanite [file] (-o [output])")
+        fmt.Fprintln(os.Stderr, "To see AST, set TZN_DBG=1 env variable, C code will be ommited")
         os.Exit(1)
     }
 
@@ -25,14 +26,18 @@ func main() {
         os.Exit(1)
     }
 
-    par := parser.NewParser()
+    par := parser.NewParser(cmdArgs[0])
     out := par.ProduceAST(string(code))
 
     dump.Config(func (o *dump.Options) {
         o.MaxDepth = 100
     })
 
-    // dump.Println(out)
+    dbg, ok := os.LookupEnv("TZN_DBG")
+    if ok && dbg == "1" {
+        dump.Println(out)
+        os.Exit(0)
+    }
 
     output := ""
 
@@ -49,11 +54,12 @@ func main() {
     }
 
     if len(output) > 0 {
-        f, err := os.CreateTemp("/tmp/", output + ".*.c")
+        f, err := os.Create(output + ".c")
         if err != nil {
             fmt.Print(err)
             os.Exit(1)
         }
+
         defer os.Remove(f.Name())
 
         if _, err := f.Write([]byte(src.Generate())); err != nil {
@@ -63,7 +69,7 @@ func main() {
 
         f.Close()
 
-        cmd := exec.Command("tcc", f.Name(), "-o", output)
+        cmd := exec.Command("tcc", f.Name(), "-g", "-o", output)
         err = cmd.Run()
 
         if err != nil {

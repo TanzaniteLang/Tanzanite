@@ -17,15 +17,20 @@ const (
 	Illegal
 
 	// Identifier and literals
+    // *Val is to know that this isn't type
 	Identifier
 	String
+    StringVal
 	Char
+    CharVal
 	Int
+    IntVal
 	Float
+    FloatVal
 	Bool
+    BoolVal 
 	Nil
 	Void
-	Command
 
 	// Statement
 	Assign

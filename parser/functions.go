@@ -3,6 +3,7 @@ package parser
 import (
     "codeberg.org/Tanzanite/Tanzanite/tokens"
     "codeberg.org/Tanzanite/Tanzanite/ast"
+    "codeberg.org/Tanzanite/Tanzanite/debug"
 )
 
 func (p *Parser) variadicCall(fndecl *ast.FunctionDecl) []ast.Expression {
@@ -138,9 +139,11 @@ func (p *Parser) parseFunction(isFun bool) ast.Statement {
 
     current = p.current()
     for current.Info != tokens.End {
+        fn.Debug = append(fn.Debug, debug.NewSourceLocation(p.source, current.Position.Line))
         fn.Body = append(fn.Body, p.parseStatement())
         current = p.current()
     }
+    fn.Debug = append(fn.Debug, debug.NewSourceLocation(p.source, current.Position.Line))
     p.consume()
 
     return fn

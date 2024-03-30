@@ -1,5 +1,7 @@
 package ast
 
+import "codeberg.org/Tanzanite/Tanzanite/debug"
+
 type NodeType int
 
 const (
@@ -12,21 +14,22 @@ const (
     BoolType = 5
     PointerType = 6
     IdentifierType = 7
+    TypeLiteralType = 8
 
     // Expressions
-    BinaryExprType = 8
-    UnaryExprType = 9
-    VarDeclarationType = 10
-    AssignExprType = 11
-    ReturnExprType = 12
-    BracketExprType = 13
-    ConditionalExprType = 14
-    ForwardPipeExprType = 15
+    BinaryExprType = 9
+    UnaryExprType = 10
+    VarDeclarationType = 11
+    AssignExprType = 12
+    ReturnExprType = 13
+    BracketExprType = 14
+    ConditionalExprType = 15
+    ForwardPipeExprType = 16
 
     // Functions
-    VariadicArgType = 16
-    FunctionDeclType = 17
-    FunctionCallType = 18
+    VariadicArgType = 17
+    FunctionDeclType = 18
+    FunctionCallType = 19
 )
 
 type Statement interface {
@@ -35,6 +38,7 @@ type Statement interface {
 
 type Program struct {
     Body []Statement
+    Debug []debug.SourceLocation
 }
 
 type Expression Statement
@@ -62,6 +66,14 @@ type BinaryExpr struct {
     Left Expression
     Right Expression
     Operator string
+}
+
+type TypeLiteral struct {
+    Type string
+}
+
+func (t TypeLiteral) GetKind() NodeType {
+    return TypeLiteralType
 }
 
 func (b BinaryExpr) GetKind() NodeType {
@@ -128,6 +140,7 @@ type FunctionDecl struct {
     Immutable bool // True if this is FUN function
     Variadic bool
     Body []Statement
+    Debug []debug.SourceLocation
 }
 
 func (f FunctionDecl) GetKind() NodeType {
