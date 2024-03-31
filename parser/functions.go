@@ -139,11 +139,10 @@ func (p *Parser) parseFunction(isFun bool) ast.Statement {
 
     current = p.current()
     for current.Info != tokens.End {
-        fn.Debug = append(fn.Debug, debug.NewSourceLocation(p.source, current.Position.Line))
+        fn.Debug = append(fn.Debug, debug.NewSourceLocation(p.source, current.Position.Line, current.Position.Column))
         fn.Body = append(fn.Body, p.parseStatement())
         current = p.current()
     }
-    fn.Debug = append(fn.Debug, debug.NewSourceLocation(p.source, current.Position.Line))
     p.consume()
 
     return fn

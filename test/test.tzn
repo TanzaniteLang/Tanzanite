@@ -6,6 +6,12 @@ fun timesTwo(a: Int): Int
 end
 
 fun main(): Int
-  printf("4 * 2 = %d\n", 4 |> timesTwo)
+  a: Int = 4
+  printf("4 * 2 = %d\n", a |> timesTwo)
+
+  a += 4
+
+  # Playing with debugger
+  printf("8 * 2 = %d\n", a |> timesTwo)
   return 0
 end

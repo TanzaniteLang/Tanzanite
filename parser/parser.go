@@ -62,7 +62,7 @@ func (p *Parser) ProduceAST(code string) ast.Program {
     prog := ast.Program {Body: make([]ast.Statement, 0)}
 
     for p.notEof() {
-        prog.Debug = append(prog.Debug, debug.NewSourceLocation(p.source, p.current().Position.Line))
+        prog.Debug = append(prog.Debug, debug.NewSourceLocation(p.source, p.current().Position.Line, p.current().Position.Column))
         prog.Body = append(prog.Body, p.parseStatement())
     }
 

@@ -7,6 +7,7 @@ import (
     "codeberg.org/Tanzanite/Tanzanite/parser"
     "codeberg.org/Tanzanite/Tanzanite/ast"
     "codeberg.org/Tanzanite/Tanzanite/ccg"
+    "codeberg.org/Tanzanite/Tanzanite/debug"
     "github.com/gookit/goutil/dump"
 )
 
@@ -36,6 +37,8 @@ func main() {
     dbg, ok := os.LookupEnv("TZN_DBG")
     if ok && dbg == "1" {
         dump.Println(out)
+        dbg := debug.NewSourceLocation(cmdArgs[0], 7, 1)
+        dbg.ThrowError("Oops")
         os.Exit(0)
     }
 

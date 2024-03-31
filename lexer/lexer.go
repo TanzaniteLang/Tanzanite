@@ -113,7 +113,7 @@ func (l *Lexer) Lex() (tokens.Position, tokens.Token, string) {
             tok, text := l.threeOperators(current)
             return pos, tok, text
         case '\'':
-            panic("Char not implemented yet")
+            l.parseChar()
         case '"':
             pos := l.pos
             text := l.parseString()
@@ -152,6 +152,42 @@ func (l *Lexer) undo() {
 }
 
 func (l *Lexer) parseString() string {
+    text := ""
+    r, _, err := l.reader.ReadRune()
+    if err != nil {
+        return ""
+    }
+
+    for {
+        next, _, err := l.reader.ReadRune()
+        if err != nil {
+            return text
+        }
+        l.pos.Column++
+
+        if r == '\\' && next == '"' {
+            text += "\\\""
+            r, _, err = l.reader.ReadRune()
+            if err != nil {
+                return text
+            }
+            continue
+        }
+
+        l.undo()
+        text += string(r)
+
+        r, _, err = l.reader.ReadRune()
+        if err != nil {
+            return text
+        }
+        if r == '"' { break }
+    }
+
+    return text
+}
+
+func (l *Lexer) parseChar() string {
     text := ""
     r, _, err := l.reader.ReadRune()
     if err != nil {
@@ -273,6 +309,7 @@ func (l *Lexer) skipComment() {
             return
         }
     }
+    l.pos.Line++
 }
 
 func (l *Lexer) threeOperators(current rune) (tokens.Token, string) {

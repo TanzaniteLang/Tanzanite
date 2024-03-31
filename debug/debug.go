@@ -1,19 +1,55 @@
 package debug
 
-import "fmt"
+import (
+    "path/filepath"
+    "strings"
+    "os"
+    "fmt"
+)
 
 type SourceLocation struct {
     Line uint64
+    Column uint64
     File string
 }
 
-func NewSourceLocation(file string, line uint64) SourceLocation {
+func NewSourceLocation(file string, line uint64, col uint64) SourceLocation {
     return SourceLocation{
         File: file,
         Line: line,
+        Column: col,
     }
 }
 
 func (s *SourceLocation) Stringify() string {
     return fmt.Sprintf("#line %d \"%s\"", s.Line, s.File)
+}
+
+func (s *SourceLocation) ThrowError(msg string) {
+    fmt.Fprintln(os.Stderr, "──────────────────────────────────────")
+    fmt.Fprintf(os.Stderr, "[%s:%d:%d] \x1b[31;1mError\x1b[0m: %s\n", filepath.Base(s.File), s.Line, s.Column, msg)
+
+    code, err := os.ReadFile(s.File)
+    if err != nil {
+        fmt.Print(err)
+        os.Exit(1)
+    }
+
+    lines := strings.Split(string(code), "\n")
+
+    fmt.Fprintln(os.Stderr, "━━━━━━━━━━━━━━━━ code ━━━━━━━━━━━━━━━━")
+
+    startLine := int64(s.Line - 5)
+    if startLine < 0 {
+        startLine = 0
+    }
+
+    width := len(fmt.Sprintf("%d", s.Line))
+
+    for i := uint64(startLine); i < s.Line; i++ {
+        fmt.Fprintf(os.Stderr, "%*d |%s\n", width, i + 1, lines[i])
+    }
+    fmt.Fprintf(os.Stderr, "%*c |%*c", width, ' ', s.Column, ' ')
+    fmt.Fprintf(os.Stderr, "^\n")
+    fmt.Fprintln(os.Stderr, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 }
