@@ -4,36 +4,17 @@ end
 fun getchar(): Int
 end
 
-fun timesTwo(a: Int): Int
-  return a * 2
-end
-
 fun main(): Int
-  a: Int = 4
-  printf "4 * 2 = %d\n", a |> timesTwo
+  c: Char = 0
 
-  a += 4
+  until c == 'Q'
+    printf "Write a letter\nType Q to quit\n"
 
-  # Playing with debugger
-  printf"8 * 2 = %d\n", a |> timesTwo
+    c = getchar
 
-  b: Int = a
+    printf "\nYou typed: %c\n\n", c
 
-  a **= 2
-  a //= a // b
-
-  printf "%d ** 2 = %d\n", a, (Int) a ** 2
-
-  printf "Write a letter: \n"
-
-  c: Char = getchar
-
-  if c == 'A'
-    printf "c is A\n"
-  elsif c == 'B'
-    printf "c is B\n"
-  else
-    printf "c is not A nor B\n"
+    getchar # Flush \n
   end
 
   return 0

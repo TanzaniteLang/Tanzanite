@@ -98,7 +98,13 @@ func (p *Parser) parseStatement() ast.Statement {
 
         return fn
     case tokens.If:
-        return p.parseIf()
+        return p.parseIf(false)
+    case tokens.Unless:
+        return p.parseIf(true)
+    case tokens.While:
+        return p.parseWhile(false)
+    case tokens.Until:
+        return p.parseWhile(true)
     case tokens.Return:
         p.consume()
         expr := p.parseExpression()

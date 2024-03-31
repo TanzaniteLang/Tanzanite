@@ -108,7 +108,13 @@ func (f *FunctionCall) Stringify() string {
 }
 
 func (i *IfStatement) Stringify() string {
-    code := fmt.Sprintf("if (%s) {\n", strExpr(i.Condition))
+    code := ""
+    if i.Unless {
+        code = fmt.Sprintf("if (!(%s)) {\n", strExpr(i.Condition))
+    } else {
+        code = fmt.Sprintf("if (%s) {\n", strExpr(i.Condition))
+    }
+
     for iter, stmt := range i.Body {
         code += i.Debug[iter].Stringify() + "\n"
         code += strExpr(stmt) + ";\n"
@@ -141,6 +147,23 @@ func (e *ElseStatement) Stringify() string {
     code := "else {\n"
     for i, stmt := range e.Body {
         code += e.Debug[i].Stringify() + "\n"
+        code += strExpr(stmt) + ";\n"
+    }
+    code += "} "
+
+    return code
+}
+
+func (w *WhileStatement) Stringify() string {
+    code := ""
+    if w.Until {
+        code = fmt.Sprintf("while (!(%s)) {\n", strExpr(w.Condition))
+    } else {
+        code = fmt.Sprintf("while (%s) {\n", strExpr(w.Condition))
+    }
+
+    for i, stmt := range w.Body {
+        code += w.Debug[i].Stringify() + "\n"
         code += strExpr(stmt) + ";\n"
     }
     code += "} "
@@ -217,6 +240,11 @@ func strExpr(e Expression) string {
         return expr.Stringify()
     case ElseStatementType:
         expr := e.(ElseStatement)
+        return expr.Stringify()
+
+        // Loops
+    case WhileStatementType:
+        expr := e.(WhileStatement)
         return expr.Stringify()
     default:
         return ""

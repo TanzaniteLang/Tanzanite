@@ -37,6 +37,9 @@ const (
     IfStatementType = 22
     ElsifStatementType = 23
     ElseStatementType = 24
+
+    // Loops
+    WhileStatementType = 25
 )
 
 type Statement interface {
@@ -213,6 +216,7 @@ type AssignExpr struct {
 
 type IfStatement struct {
     Condition Expression
+    Unless bool
     Body []Statement
     Next Statement
     Debug []debug.SourceLocation
@@ -240,6 +244,17 @@ type ElseStatement struct {
 
 func (e ElseStatement) GetKind() NodeType {
     return ElseStatementType
+}
+
+type WhileStatement struct {
+    Condition Expression
+    Until bool
+    Body []Statement
+    Debug []debug.SourceLocation
+}
+
+func (w WhileStatement) GetKind() NodeType {
+    return WhileStatementType
 }
 
 type Pointer struct {}

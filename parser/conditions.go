@@ -49,11 +49,12 @@ func (p *Parser) parseElsif() ast.Statement {
     return stat
 }
 
-func (p *Parser) parseIf() ast.Statement {
+func (p *Parser) parseIf(unless bool) ast.Statement {
     p.consume()
 
     stat := ast.IfStatement{
         Condition: p.parseExpression(),
+        Unless: unless,
         Next: nil,
     }
 
