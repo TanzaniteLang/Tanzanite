@@ -8,12 +8,13 @@ import (
 
 func (p *Parser) variadicCall(fndecl *ast.FunctionDecl) []ast.Expression {
     args := make([]ast.Expression, 0)
+    needBracket := false
     argCount := len(fndecl.Arguments) - 1 // because variadic
 
-    if p.current().Info != tokens.LBracket {
-        panic("Missing (")
+    if p.current().Info == tokens.LBracket {
+        needBracket = true
+        p.consume()
     }
-    p.consume()
 
     for i := 0; i < argCount; i++ {
         args = append(args, p.parseExpression())
@@ -32,11 +33,15 @@ func (p *Parser) variadicCall(fndecl *ast.FunctionDecl) []ast.Expression {
         args = append(args, p.parseExpression())
     }
 
-    if p.current().Info != tokens.RBracket {
-        panic("Missing )")
+    if needBracket && p.current().Info == tokens.RBracket {
+        p.consume()
+    } else if needBracket && p.current().Info != tokens.RBracket {
+        c := p.previous()
+        dbg := debug.NewSourceLocation(p.source, c.Position.Line, c.Position.Column + 1)
+        dbg.ThrowError("Function call is missing )!", p.Dead)
+        p.Dead = true
+        p.skipToNewLine()
     }
-
-    p.consume()
 
     return args
 }

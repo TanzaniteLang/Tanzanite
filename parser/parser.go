@@ -18,8 +18,10 @@ type Parser struct {
     tokens []Token
     env env.Environment
 
+    pos int
     source string
     parsingFn bool // Breaks reccursion
+    Dead bool
 }
 
 func NewParser(file string) *Parser {
@@ -28,22 +30,38 @@ func NewParser(file string) *Parser {
         env: env.NewEnv(),
         parsingFn: false,
         source: file,
+        Dead: false,
+        pos: 0,
     }
 }
 
 func (p *Parser) notEof() bool {
-    return p.tokens[0].Info != tokens.Eof
+    return p.tokens[p.pos].Info != tokens.Eof
 }
 
 func (p *Parser) current() Token {
-    return p.tokens[0]
+    return p.tokens[p.pos]
 }
 
 func (p *Parser) consume() Token {
-    prev, tokens2 := p.tokens[0], p.tokens[1:]
-    p.tokens = tokens2
+    p.pos++
+    return p.tokens[p.pos - 1]
+}
 
-    return prev
+func (p *Parser) previous() Token {
+    if p.pos == 0 {
+        return p.tokens[0]
+    }
+
+    return p.tokens[p.pos - 1]
+}
+
+func (p *Parser) skipToNewLine() {
+    pos := p.previous().Position.Line
+
+    for p.current().Position.Line == pos {
+        p.pos++
+    }
 }
 
 func (p *Parser) ProduceAST(code string) ast.Program {
@@ -81,8 +99,17 @@ func (p *Parser) parseStatement() ast.Statement {
         return fn
     case tokens.Return:
         p.consume()
+        expr := p.parseExpression()
+        if expr == nil {
+            c := p.previous()
+            dbg := debug.NewSourceLocation(p.source, c.Position.Line, c.Position.Column + 1 + uint64(len(c.Text)))
+            dbg.ThrowError("Return statement is missing a value!", p.Dead)
+            p.Dead = true
+            p.skipToNewLine()
+        }
+
         return ast.ReturnExpr{
-            Value: p.parseExpression(),
+            Value: expr,
         }
     case tokens.Identifier:
         fn, ok := p.env.Fns[p.current().Text]

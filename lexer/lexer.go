@@ -113,7 +113,9 @@ func (l *Lexer) Lex() (tokens.Position, tokens.Token, string) {
             tok, text := l.threeOperators(current)
             return pos, tok, text
         case '\'':
-            l.parseChar()
+            pos := l.pos
+            text := l.parseChar()
+            return pos, tokens.CharVal, text
         case '"':
             pos := l.pos
             text := l.parseString()
@@ -158,6 +160,7 @@ func (l *Lexer) parseString() string {
         return ""
     }
 
+    l.pos.Column++
     for {
         next, _, err := l.reader.ReadRune()
         if err != nil {
@@ -171,6 +174,7 @@ func (l *Lexer) parseString() string {
             if err != nil {
                 return text
             }
+            l.pos.Column++
             continue
         }
 
@@ -181,6 +185,7 @@ func (l *Lexer) parseString() string {
         if err != nil {
             return text
         }
+        l.pos.Column++
         if r == '"' { break }
     }
 
@@ -188,39 +193,36 @@ func (l *Lexer) parseString() string {
 }
 
 func (l *Lexer) parseChar() string {
-    text := ""
+    // TODO: Ensure that it is closed with '
     r, _, err := l.reader.ReadRune()
     if err != nil {
         return ""
     }
+    l.pos.Column++
 
-    for {
+    if r == '\\' {
         next, _, err := l.reader.ReadRune()
         if err != nil {
-            return text
+            return ""
         }
         l.pos.Column++
 
-        if r == '\\' && next == '"' {
-            text += "\\\""
-            r, _, err = l.reader.ReadRune()
-            if err != nil {
-                return text
-            }
-            continue
-        }
-
-        l.undo()
-        text += string(r)
-
-        r, _, err = l.reader.ReadRune()
+        _, _, err = l.reader.ReadRune()
         if err != nil {
-            return text
+            return ""
         }
-        if r == '"' { break }
+        l.pos.Column++
+
+        return "\\" + string(next)
     }
 
-    return text
+    _, _, err = l.reader.ReadRune()
+    if err != nil {
+        return ""
+    }
+    l.pos.Column++
+
+    return string(r)
 }
 
 func (l *Lexer) parseIdentifier() (tokens.Token, string) {
@@ -233,6 +235,7 @@ func (l *Lexer) parseIdentifier() (tokens.Token, string) {
     l.pos.Column++
 
     for unicode.IsDigit(r) || unicode.IsLetter(r) || r == '_' || r == '@' {
+        l.pos.Column++
         text += string(r)
         r, _, err = l.reader.ReadRune()
         if err != nil {
@@ -245,10 +248,10 @@ func (l *Lexer) parseIdentifier() (tokens.Token, string) {
             }
             panic(err)
         }
-        l.pos.Column++
     }
 
     l.undo()
+
     if tok := tokens.Search(text); tok == tokens.Eof {
         return tokens.Identifier, text
     } else {
@@ -268,6 +271,7 @@ func (l *Lexer) parseNumber() (tokens.Token, string) {
     l.pos.Column++
 
     for unicode.IsDigit(r) || r == '.' && !is_float || r == '_' {
+        l.pos.Column++
         text += string(r)
         if r == '.' {
             is_float = true
@@ -284,7 +288,6 @@ func (l *Lexer) parseNumber() (tokens.Token, string) {
             }
             panic(err)
         }
-        l.pos.Column++
     }
 
     l.undo()
@@ -309,7 +312,7 @@ func (l *Lexer) skipComment() {
             return
         }
     }
-    l.pos.Line++
+    l.newLine()
 }
 
 func (l *Lexer) threeOperators(current rune) (tokens.Token, string) {
@@ -374,9 +377,6 @@ func (l *Lexer) threeOperators(current rune) (tokens.Token, string) {
         return tokens.Greater, ">"
     case '<':
         if r == '=' {
-            if r2 == '>' {
-                return tokens.Spaceship, "<=>"
-            }
             l.undo();
             return tokens.LessEquals, "<="
         } else if r == '<' {

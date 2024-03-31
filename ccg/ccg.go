@@ -4,6 +4,11 @@ import (
     "codeberg.org/Tanzanite/Tanzanite/ast"
 )
 
+import _ "embed"
+
+//go:embed __bootstrap.c
+var bootstrap string
+
 type Source struct {
     Name string
     Functions []ast.FunctionDecl
@@ -16,14 +21,7 @@ func NewSource(name string) *Source {
         Name: name,
         Functions: make([]ast.FunctionDecl, 0),
         // Tanzanite boilerplate
-        source: `#define true 1
-#define false 0
-#define Bool _Bool
-#define Char char
-#define Int int
-#define Float float
-
-`,
+        source: bootstrap,
     }
 }
 

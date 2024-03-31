@@ -5,7 +5,20 @@ import (
     "strings"
 )
 
+func (t *TypeLiteral) Stringify() string {
+    return strType(t.Type)
+}
+
+func (t *TypeCast) Stringify() string {
+    return fmt.Sprintf("(%s) %s", t.Target.Stringify(), strExpr(t.Expr))
+}
+
 func (b *BinaryExpr) Stringify() string {
+    if b.Operator == "**" {
+        return fmt.Sprintf("pow(%s, %s)", strExpr(b.Left), strExpr(b.Right))
+    } else if b.Operator == "//" {
+        return fmt.Sprintf("floor(%s) / floor(%s)", strExpr(b.Left), strExpr(b.Right))
+    }
     return fmt.Sprintf("%s %s %s", strExpr(b.Left), b.Operator, strExpr(b.Right))
 }
 
@@ -25,6 +38,11 @@ func (v *VarDeclaration) StringifyAsArg() string {
 }
 
 func (a *AssignExpr) Stringify() string {
+    if a.Operator == "**=" {
+        return fmt.Sprintf("%s = pow(%s, %s)", strExpr(a.Name), strExpr(a.Name), strExpr(a.Value))
+    } else if a.Operator == "//=" {
+        return fmt.Sprintf("%s = floor(%s) / floor(%s)", strExpr(a.Name), strExpr(a.Name), strExpr(a.Value))
+    }
     return fmt.Sprintf("%s %s %s", strExpr(a.Name), a.Operator, strExpr(a.Value))
 }
 
@@ -98,14 +116,20 @@ func strExpr(e Expression) string {
         return fmt.Sprintf("%f", e.(FloatLiteral).Value)
     case StringType:
         return "\"" + e.(String).Value + "\""
+    case CharType:
+        return "'" + e.(Char).Value + "'"
     case BoolType:
-        panic("Bool not yet implemented")
+        return e.(Bool).Value
     case PointerType:
         return "*"
     case IdentifierType:
         return e.(Identifier).Symbol
     case TypeLiteralType:
-        return e.(TypeLiteral).Type
+        expr := e.(TypeLiteral)
+        return expr.Stringify()
+    case TypeCastType:
+        expr := e.(TypeCast)
+        return expr.Stringify()
 
         // Expressions
     case BinaryExprType:

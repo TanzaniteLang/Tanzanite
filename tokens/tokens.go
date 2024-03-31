@@ -82,7 +82,6 @@ const (
 	LessEquals
 	LeftShift
 	LeftShiftAssign
-	Spaceship
 	Greater
 	GreaterEquals
 	RightShift
@@ -145,7 +144,6 @@ var tokens = []string{
 	LessEquals:           "<=",
 	LeftShift:            "<<",
 	LeftShiftAssign:      "<<=",
-	Spaceship:            "<=>",
 	Greater:              ">",
 	GreaterEquals:        ">=",
 	RightShift:           ">>",
@@ -199,7 +197,7 @@ func (t Token) String() string {
 
 func Search(text string) Token {
     if text == "true" || text == "false" {
-        return Bool
+        return BoolVal
     }
 
     index := slices.Index(tokens, text)

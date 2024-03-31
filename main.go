@@ -7,7 +7,6 @@ import (
     "codeberg.org/Tanzanite/Tanzanite/parser"
     "codeberg.org/Tanzanite/Tanzanite/ast"
     "codeberg.org/Tanzanite/Tanzanite/ccg"
-    "codeberg.org/Tanzanite/Tanzanite/debug"
     "github.com/gookit/goutil/dump"
 )
 
@@ -30,6 +29,10 @@ func main() {
     par := parser.NewParser(cmdArgs[0])
     out := par.ProduceAST(string(code))
 
+    if par.Dead {
+        os.Exit(1)
+    }
+
     dump.Config(func (o *dump.Options) {
         o.MaxDepth = 100
     })
@@ -37,8 +40,6 @@ func main() {
     dbg, ok := os.LookupEnv("TZN_DBG")
     if ok && dbg == "1" {
         dump.Println(out)
-        dbg := debug.NewSourceLocation(cmdArgs[0], 7, 1)
-        dbg.ThrowError("Oops")
         os.Exit(0)
     }
 
@@ -72,11 +73,11 @@ func main() {
 
         f.Close()
 
-        cmd := exec.Command("tcc", f.Name(), "-g", "-o", output)
+        cmd := exec.Command("tcc", f.Name(), "-g", "-o", output, "-lm")
         err = cmd.Run()
 
         if err != nil {
-            fmt.Print(err)
+            fmt.Println(err)
             os.Exit(1)
         }
     } else {

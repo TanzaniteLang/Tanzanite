@@ -7,11 +7,22 @@ end
 
 fun main(): Int
   a: Int = 4
-  printf("4 * 2 = %d\n", a |> timesTwo)
+  printf "4 * 2 = %d\n", a |> timesTwo
 
   a += 4
 
   # Playing with debugger
-  printf("8 * 2 = %d\n", a |> timesTwo)
+  printf"8 * 2 = %d\n", a |> timesTwo
+
+  b: Int = a
+
+  a **= 2
+  a //= a // b
+
+  printf("%d ** 2 = %d\n", a, (Int) a ** 2)
+
+  c: Char = 'A'
+
+  printf "%c %d\n", c, true
   return 0
 end

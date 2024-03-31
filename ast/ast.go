@@ -11,25 +11,27 @@ const (
     IntLiteralType = 1
     FloatLiteralType = 2
     StringType = 4
-    BoolType = 5
-    PointerType = 6
-    IdentifierType = 7
-    TypeLiteralType = 8
+    CharType = 5
+    BoolType = 6
+    PointerType = 7
+    IdentifierType = 8
+    TypeLiteralType = 9
+    TypeCastType = 10
 
     // Expressions
-    BinaryExprType = 9
-    UnaryExprType = 10
-    VarDeclarationType = 11
-    AssignExprType = 12
-    ReturnExprType = 13
-    BracketExprType = 14
-    ConditionalExprType = 15
-    ForwardPipeExprType = 16
+    BinaryExprType = 11
+    UnaryExprType = 12
+    VarDeclarationType = 13
+    AssignExprType = 14
+    ReturnExprType = 15
+    BracketExprType = 16
+    ConditionalExprType = 17
+    ForwardPipeExprType = 18
 
     // Functions
-    VariadicArgType = 17
-    FunctionDeclType = 18
-    FunctionCallType = 19
+    VariadicArgType = 19
+    FunctionDeclType = 20
+    FunctionCallType = 21
 )
 
 type Statement interface {
@@ -69,11 +71,20 @@ type BinaryExpr struct {
 }
 
 type TypeLiteral struct {
-    Type string
+    Type []Statement
 }
 
 func (t TypeLiteral) GetKind() NodeType {
     return TypeLiteralType
+}
+
+type TypeCast struct {
+    Target TypeLiteral
+    Expr Expression
+}
+
+func (t TypeCast) GetKind() NodeType {
+    return TypeCastType
 }
 
 func (b BinaryExpr) GetKind() NodeType {
@@ -119,6 +130,22 @@ type String struct {
 
 func (s String) GetKind() NodeType {
     return StringType
+}
+
+type Char struct {
+    Value string
+}
+
+func (c Char) GetKind() NodeType {
+    return CharType
+}
+
+type Bool struct {
+    Value string
+}
+
+func (b Bool) GetKind() NodeType {
+    return BoolType
 }
 
 type VarDeclaration struct {

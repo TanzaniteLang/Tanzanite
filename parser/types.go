@@ -26,8 +26,24 @@ func (p *Parser) parseType() []ast.Statement {
     return typeConstruct
 }
 
+func (p *Parser) checkType() bool {
+    tok := p.current().Info
+
+    switch tok {
+    case tokens.Char:
+        return true
+    case tokens.Int:
+        return true
+    case tokens.Float:
+        return true
+    case tokens.Bool:
+        return true
+    }
+    return false
+}
+
 func (p *Parser) parsePrimaryExpr() ast.Expression {
-    tok := p.current().Info;
+    tok := p.current().Info
 
     switch tok {
     case tokens.Identifier:
@@ -36,8 +52,8 @@ func (p *Parser) parsePrimaryExpr() ast.Expression {
             return p.parseFnCall(fn)
         }
         return ast.Identifier{ Symbol: p.consume().Text }
-    case tokens.Char:
-        return ast.TypeLiteral{ Type: p.consume().Text }
+    case tokens.CharVal:
+        return ast.Char{ Value: p.consume().Text }
     case tokens.StringVal:
         return ast.String{ Value: p.consume().Text }
     case tokens.FloatVal:
@@ -50,15 +66,31 @@ func (p *Parser) parsePrimaryExpr() ast.Expression {
         return ast.IntLiteral{
             Value: val,
         }
+    case tokens.BoolVal:
+        return ast.Bool{ Value: p.consume().Text }
     case tokens.LBracket:
         p.consume()
- 
-        val := ast.BracketExpr{
-            Expr: p.parseExpression(),
-        }
-        p.consume()
 
-        return val
+        if p.checkType() {
+            val := ast.TypeCast{
+                Target: ast.TypeLiteral{
+                    Type: p.parseType(),
+                },
+                Expr: nil,
+            }
+            p.consume()
+
+            val.Expr = p.parseExpression()
+
+            return val
+        } else {
+            val := ast.BracketExpr{
+                Expr: p.parseExpression(),
+            }
+            p.consume()
+
+            return val
+        }
     case tokens.Plus:
         return p.parseUnaryExpr()
     case tokens.Minus:
