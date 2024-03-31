@@ -171,6 +171,14 @@ func (w *WhileStatement) Stringify() string {
     return code
 }
 
+func (l *LoopControlStatement) Stringify() string {
+    if l.Break {
+        return "break"
+    } else {
+        return "continue"
+    }
+}
+
 func strExpr(e Expression) string {
     switch (e.GetKind()) {
         // Types
@@ -245,6 +253,9 @@ func strExpr(e Expression) string {
         // Loops
     case WhileStatementType:
         expr := e.(WhileStatement)
+        return expr.Stringify()
+    case LoopControlStatementType:
+        expr := e.(LoopControlStatement)
         return expr.Stringify()
     default:
         return ""

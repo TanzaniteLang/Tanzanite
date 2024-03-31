@@ -40,6 +40,7 @@ const (
 
     // Loops
     WhileStatementType = 25
+    LoopControlStatementType = 26
 )
 
 type Statement interface {
@@ -255,6 +256,14 @@ type WhileStatement struct {
 
 func (w WhileStatement) GetKind() NodeType {
     return WhileStatementType
+}
+
+type LoopControlStatement struct {
+    Break bool
+}
+
+func (l LoopControlStatement) GetKind() NodeType {
+    return LoopControlStatementType
 }
 
 type Pointer struct {}

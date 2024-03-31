@@ -7,14 +7,18 @@ end
 fun main(): Int
   c: Char = 0
 
-  until c == 'Q'
+  while true
     printf "Write a letter\nType Q to quit\n"
 
     c = getchar
-
-    printf "\nYou typed: %c\n\n", c
-
     getchar # Flush \n
+
+    unless c == 'Q'
+      printf "\nYou typed: %c\n\n", c
+      next
+    end
+
+    break
   end
 
   return 0

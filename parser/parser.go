@@ -97,6 +97,16 @@ func (p *Parser) parseStatement() ast.Statement {
         p.env.Fns[fn.Name] = &fn
 
         return fn
+    case tokens.Break:
+        p.consume()
+        return ast.LoopControlStatement{
+            Break: true,
+        }
+    case tokens.Next:
+        p.consume()
+        return ast.LoopControlStatement{
+            Break: false,
+        }
     case tokens.If:
         return p.parseIf(false)
     case tokens.Unless:
