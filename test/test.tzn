@@ -1,6 +1,9 @@
 fun printf(format: Char*, ...): Int
 end
 
+fun getchar(): Int
+end
+
 fun timesTwo(a: Int): Int
   return a * 2
 end
@@ -19,10 +22,19 @@ fun main(): Int
   a **= 2
   a //= a // b
 
-  printf("%d ** 2 = %d\n", a, (Int) a ** 2)
+  printf "%d ** 2 = %d\n", a, (Int) a ** 2
 
-  c: Char = 'A'
+  printf "Write a letter: \n"
 
-  printf "%c %d\n", c, true
+  c: Char = getchar
+
+  if c == 'A'
+    printf "c is A\n"
+  elsif c == 'B'
+    printf "c is B\n"
+  else
+    printf "c is not A nor B\n"
+  end
+
   return 0
 end

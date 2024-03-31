@@ -97,6 +97,8 @@ func (p *Parser) parseStatement() ast.Statement {
         p.env.Fns[fn.Name] = &fn
 
         return fn
+    case tokens.If:
+        return p.parseIf()
     case tokens.Return:
         p.consume()
         expr := p.parseExpression()

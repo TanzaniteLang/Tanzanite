@@ -107,6 +107,47 @@ func (f *FunctionCall) Stringify() string {
     return fmt.Sprintf("%s(%s)", strExpr(f.Calle), f.StringifyArgs())
 }
 
+func (i *IfStatement) Stringify() string {
+    code := fmt.Sprintf("if (%s) {\n", strExpr(i.Condition))
+    for iter, stmt := range i.Body {
+        code += i.Debug[iter].Stringify() + "\n"
+        code += strExpr(stmt) + ";\n"
+    }
+    code += "} "
+
+    if i.Next != nil {
+        code += strExpr(i.Next)
+    }
+
+    return code
+}
+
+func (e *ElsifStatement) Stringify() string {
+    code := fmt.Sprintf("else if (%s) {\n", strExpr(e.Condition))
+    for i, stmt := range e.Body {
+        code += e.Debug[i].Stringify() + "\n"
+        code += strExpr(stmt) + ";\n"
+    }
+    code += "} "
+
+    if e.Next != nil {
+        code += strExpr(e.Next)
+    }
+
+    return code
+}
+
+func (e *ElseStatement) Stringify() string {
+    code := "else {\n"
+    for i, stmt := range e.Body {
+        code += e.Debug[i].Stringify() + "\n"
+        code += strExpr(stmt) + ";\n"
+    }
+    code += "} "
+
+    return code
+}
+
 func strExpr(e Expression) string {
     switch (e.GetKind()) {
         // Types
@@ -165,6 +206,17 @@ func strExpr(e Expression) string {
         return expr.Stringify()
     case FunctionCallType:
         expr := e.(FunctionCall)
+        return expr.Stringify()
+    
+        // Conditions
+    case IfStatementType:
+        expr := e.(IfStatement)
+        return expr.Stringify()
+    case ElsifStatementType:
+        expr := e.(ElsifStatement)
+        return expr.Stringify()
+    case ElseStatementType:
+        expr := e.(ElseStatement)
         return expr.Stringify()
     default:
         return ""

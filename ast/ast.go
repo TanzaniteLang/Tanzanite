@@ -32,6 +32,11 @@ const (
     VariadicArgType = 19
     FunctionDeclType = 20
     FunctionCallType = 21
+
+    // Conditions
+    IfStatementType = 22
+    ElsifStatementType = 23
+    ElseStatementType = 24
 )
 
 type Statement interface {
@@ -205,6 +210,38 @@ type AssignExpr struct {
     Operator string
 }
 
+
+type IfStatement struct {
+    Condition Expression
+    Body []Statement
+    Next Statement
+    Debug []debug.SourceLocation
+}
+
+func (i IfStatement) GetKind() NodeType {
+    return IfStatementType
+}
+
+type ElsifStatement struct {
+    Condition Expression
+    Body []Statement
+    Debug []debug.SourceLocation
+    Next Statement
+}
+
+func (e ElsifStatement) GetKind() NodeType {
+    return ElsifStatementType
+}
+
+type ElseStatement struct {
+    Body []Statement
+    Debug []debug.SourceLocation
+}
+
+func (e ElseStatement) GetKind() NodeType {
+    return ElseStatementType
+}
+
 type Pointer struct {}
 
 func (p Pointer) GetKind() NodeType {
@@ -217,18 +254,4 @@ func (a AssignExpr) GetKind() NodeType {
 
 func (v VarDeclaration) GetKind() NodeType {
     return VarDeclarationType
-}
-
-func stringifyType(t []Statement) string {
-    text := ""
-
-    for _, part := range t {
-        if part.GetKind() == IdentifierType {
-            text += part.(Identifier).Symbol
-        } else if part.GetKind() == PointerType {
-            text += "*"
-        }
-    }
-
-    return text
 }
