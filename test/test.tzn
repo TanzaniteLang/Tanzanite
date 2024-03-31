@@ -5,6 +5,9 @@ fun getchar(): Int
 end
 
 fun main(): Int
+  lol -
+  gg = 0
+
   c: Char = 0
 
   while true

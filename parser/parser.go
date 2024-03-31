@@ -21,6 +21,9 @@ type Parser struct {
     pos int
     source string
     parsingFn bool // Breaks reccursion
+
+    // Programmer info
+    warn bool
     Dead bool
 }
 
@@ -31,6 +34,7 @@ func NewParser(file string) *Parser {
         parsingFn: false,
         source: file,
         Dead: false,
+        warn: false,
         pos: 0,
     }
 }
@@ -121,7 +125,7 @@ func (p *Parser) parseStatement() ast.Statement {
         if expr == nil {
             c := p.previous()
             dbg := debug.NewSourceLocation(p.source, c.Position.Line, c.Position.Column + 1 + uint64(len(c.Text)))
-            dbg.ThrowError("Return statement is missing a value!", p.Dead)
+            dbg.ThrowError("Return statement is missing a value!", p.warn || p.Dead)
             p.Dead = true
             p.skipToNewLine()
         }
@@ -137,7 +141,11 @@ func (p *Parser) parseStatement() ast.Statement {
 
         _, ok = p.env.Vars[p.current().Text]
         if !ok {
-            stmt := p.parseVarDeclaration().(ast.VarDeclaration)
+            possiblyVar := p.parseVarDeclaration()
+            if possiblyVar == nil {
+                return nil
+            }
+            stmt := possiblyVar.(ast.VarDeclaration)
             p.env.Vars[stmt.Name] = &stmt
             return stmt
         }
