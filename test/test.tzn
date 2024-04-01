@@ -13,9 +13,11 @@ fun main(): Int
     c = getchar
     getchar # Flush \n
 
-    unless c == 'Q'
+    unless c == 'Q' then
       printf "\nYou typed: %c\n\n", c
       next
+    elsif c == 'A'
+      printf "Hai\n"
     end
 
     break

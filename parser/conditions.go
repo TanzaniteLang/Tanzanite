@@ -24,10 +24,25 @@ func (p *Parser) parseElse() ast.Statement {
 }
 
 func (p *Parser) parseElsif() ast.Statement {
-    p.consume()
+    c := p.consume()
+    index := p.pos + 1
+    start_line := c.Position.Line
+
+    expr := p.parseExpression()
+
+    if expr == nil || start_line != p.tokens[index].Position.Line {
+        dbg := debug.NewSourceLocation(p.source, c.Position.Line, c.Position.Column + 1 + uint64(len(c.Text)))
+        dbg.ThrowError("Missign expression!", p.warn || p.Dead, nil)
+        p.Dead = true
+        p.skipToNewLine()
+    }
+
+    if p.current().Info == tokens.Then {
+        p.consume()
+    }
 
     stat := ast.ElsifStatement{
-        Condition: p.parseExpression(),
+        Condition: expr,
         Next: nil,
     }
 
@@ -50,10 +65,25 @@ func (p *Parser) parseElsif() ast.Statement {
 }
 
 func (p *Parser) parseIf(unless bool) ast.Statement {
-    p.consume()
+    c := p.consume()
+    index := p.pos + 1
+    start_line := c.Position.Line
+
+    expr := p.parseExpression()
+
+    if expr == nil || start_line != p.tokens[index].Position.Line {
+        dbg := debug.NewSourceLocation(p.source, c.Position.Line, c.Position.Column + 1 + uint64(len(c.Text)))
+        dbg.ThrowError("Missign expression!", p.warn || p.Dead, nil)
+        p.Dead = true
+        p.skipToNewLine()
+    }
+
+    if p.current().Info == tokens.Then {
+        p.consume()
+    }
 
     stat := ast.IfStatement{
-        Condition: p.parseExpression(),
+        Condition: expr,
         Unless: unless,
         Next: nil,
     }
