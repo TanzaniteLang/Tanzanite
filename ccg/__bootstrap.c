@@ -6,6 +6,8 @@
 #define Char char
 #define Int int
 #define Float float
+#define Void void
+#define nil (void*) 0
 
 double pow(double a, double b);
 double floor(double a);

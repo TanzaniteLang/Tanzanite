@@ -175,6 +175,7 @@ type FunctionDecl struct {
     ReturnType []Statement
     Immutable bool // True if this is FUN function
     Variadic bool
+    Failed bool
     Body []Statement
     Debug []debug.SourceLocation
 }

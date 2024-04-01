@@ -1,11 +1,22 @@
-fun printf(format: Char**, ...)
+fun printf(format: char**, ...): int
 end
 
-fun getchar(): Int
+fun add(a: int, b: int): int
+  return a + b
 end
 
-fun main(): Int
-  c: Char
+fun getchar(): int
+end
+
+fun main(): int
+  printf "%p\n", nil + 10
+
+  heh: void* = nil
+  printf "%p %p\n", &heh, heh + 7
+
+  printf "2 + 2 = %d\n", add(2, 2)
+
+  c: char
 
   while true
     printf "Write a letter\nType Q to quit\n"
@@ -16,8 +27,6 @@ fun main(): Int
     unless c == 'Q' then
       printf "\nYou typed: %c\n\n", c
       next
-    elsif c == 'A'
-      printf "Hai\n"
     end
 
     break

@@ -119,9 +119,10 @@ func (i *IfStatement) Stringify() string {
         code += i.Debug[iter].Stringify() + "\n"
         code += strExpr(stmt) + ";\n"
     }
-    code += "} "
+    code += "}"
 
     if i.Next != nil {
+        code += " "
         code += strExpr(i.Next)
     }
 
@@ -134,9 +135,10 @@ func (e *ElsifStatement) Stringify() string {
         code += e.Debug[i].Stringify() + "\n"
         code += strExpr(stmt) + ";\n"
     }
-    code += "} "
+    code += "}"
 
     if e.Next != nil {
+        code += " "
         code += strExpr(e.Next)
     }
 
@@ -149,7 +151,7 @@ func (e *ElseStatement) Stringify() string {
         code += e.Debug[i].Stringify() + "\n"
         code += strExpr(stmt) + ";\n"
     }
-    code += "} "
+    code += "}"
 
     return code
 }
@@ -166,7 +168,7 @@ func (w *WhileStatement) Stringify() string {
         code += w.Debug[i].Stringify() + "\n"
         code += strExpr(stmt) + ";\n"
     }
-    code += "} "
+    code += "}"
 
     return code
 }

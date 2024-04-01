@@ -21,6 +21,7 @@ type Parser struct {
     pos int
     source string
     parsingFn bool // Breaks reccursion
+    requireBrackets bool
 
     // Programmer info
     warn bool
@@ -32,6 +33,7 @@ func NewParser(file string) *Parser {
         tokens: make([]Token, 0),
         env: env.NewEnv(),
         parsingFn: false,
+        requireBrackets: false,
         source: file,
         Dead: false,
         warn: false,
@@ -136,6 +138,19 @@ func (p *Parser) parseStatement() ast.Statement {
     case tokens.Identifier:
         fn, ok := p.env.Fns[p.current().Text]
         if ok { // This is a function call
+            if fn.Failed {
+                c := p.current()
+                p.consume()
+
+                dbg := debug.NewSourceLocation(p.source, c.Position.Line, c.Position.Column)
+                dbg.ThrowError("Function \"" + c.Text + "\" failed to parse!", p.warn || p.Dead, &debug.Hint{
+                    Msg: "Fix the function before using it", 
+                    Code: "",
+                })
+                p.Dead = true
+                p.skipToNewLine()
+                return nil
+            }
             return p.parseFnCall(fn)
         }
 

@@ -54,6 +54,8 @@ func (p *Parser) checkType() bool {
         return true
     case tokens.Bool:
         return true
+    case tokens.Void:
+        return true
     case tokens.Identifier:
         return true
     }
@@ -109,6 +111,9 @@ func (p *Parser) parsePrimaryExpr() ast.Expression {
 
             return val
         }
+    case tokens.Nil:
+        p.consume()
+        return ast.Identifier{ Symbol: "nil" }
     case tokens.Plus:
         return p.parseUnaryExpr()
     case tokens.Minus:

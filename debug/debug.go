@@ -66,7 +66,7 @@ func (s *SourceLocation) ThrowError(msg string, top bool, hint *Hint) {
 
     width := len(fmt.Sprintf("%d", s.Line))
 
-    if hint != nil {
+    if hint != nil && len(hint.Code) > 0 {
         for i := uint64(startLine); i < s.Line - 1; i++ {
             fmt.Fprintf(os.Stderr, "%*d | %s\n", width, i + 1, lines[i])
         }
@@ -116,7 +116,7 @@ func (s *SourceLocation) ThrowWarning(msg string, top bool, hint *Hint) {
 
     width := len(fmt.Sprintf("%d", s.Line))
 
-    if hint != nil {
+    if hint != nil && len(hint.Code) > 0 {
         for i := uint64(startLine); i < s.Line - 1; i++ {
             fmt.Fprintf(os.Stderr, "%*d | %s\n", width, i + 1, lines[i])
         }
@@ -132,4 +132,22 @@ func (s *SourceLocation) ThrowWarning(msg string, top bool, hint *Hint) {
         fmt.Fprintf(os.Stderr, "^\n")
     }
     fmt.Fprintln(os.Stderr, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+}
+
+func LogError(msg string, hint *Hint) {
+    if hint != nil {
+        fmt.Fprintf(os.Stderr, "\x1b[31;1mError\x1b[0m: %s\n", msg)
+        fmt.Fprintf(os.Stderr, "\x1b[34;1mHint\x1b[0m: %s\n", hint.Msg)
+    } else {
+        fmt.Fprintf(os.Stderr, "\x1b[31;1mError\x1b[0m: %s\n", msg)
+    }
+}
+
+func LogWarning(msg string, hint *Hint) {
+    if hint != nil {
+        fmt.Fprintf(os.Stderr, "\x1b[33;1mWarning\x1b[0m: %s\n", msg)
+        fmt.Fprintf(os.Stderr, "\x1b[34;1mHint\x1b[0m: %s\n", hint.Msg)
+    } else {
+        fmt.Fprintf(os.Stderr, "\x1b[33;1Warning\x1b[0m: %s\n", msg)
+    }
 }
