@@ -38,7 +38,10 @@ func (p *Parser) variadicCall(fndecl *ast.FunctionDecl) []ast.Expression {
     } else if needBracket && p.current().Info != tokens.RBracket {
         c := p.previous()
         dbg := debug.NewSourceLocation(p.source, c.Position.Line, c.Position.Column + 1)
-        dbg.ThrowError("Function call is missing )!", p.warn || p.Dead)
+        dbg.ThrowError("Function call is missing )!", p.warn || p.Dead, &debug.Hint{
+            Msg: "Add )",
+            Code: ")",
+        })
         p.Dead = true
         p.skipToNewLine()
     }
@@ -73,7 +76,10 @@ func (p *Parser) functionCall(fndecl *ast.FunctionDecl) []ast.Expression {
     } else if needBracket && p.current().Info != tokens.RBracket {
         c := p.previous()
         dbg := debug.NewSourceLocation(p.source, c.Position.Line, c.Position.Column + 1)
-        dbg.ThrowError("Function call is missing )!", p.warn || p.Dead)
+        dbg.ThrowError("Function call is missing )!", p.warn || p.Dead, &debug.Hint{
+            Msg: "Add )",
+            Code: ")",
+        })
         p.Dead = true
         p.skipToNewLine()
     }

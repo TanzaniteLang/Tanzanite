@@ -125,7 +125,7 @@ func (p *Parser) parseStatement() ast.Statement {
         if expr == nil {
             c := p.previous()
             dbg := debug.NewSourceLocation(p.source, c.Position.Line, c.Position.Column + 1 + uint64(len(c.Text)))
-            dbg.ThrowError("Return statement is missing a value!", p.warn || p.Dead)
+            dbg.ThrowError("Return statement is missing a value!", p.warn || p.Dead, nil)
             p.Dead = true
             p.skipToNewLine()
         }

@@ -3,11 +3,27 @@ package parser
 import (
     "strconv"
     "codeberg.org/Tanzanite/Tanzanite/tokens"
+    "codeberg.org/Tanzanite/Tanzanite/debug"
     "codeberg.org/Tanzanite/Tanzanite/ast"
 )
 
 func (p *Parser) parseType() []ast.Statement {
     typeConstruct := make([]ast.Statement, 0)
+
+    if !p.checkType() {
+        c := p.current()
+
+        dbg := debug.NewSourceLocation(p.source, c.Position.Line, c.Position.Column)
+        dbg.ThrowError("Specify the Type until Static Analyzer is present!", p.warn || p.Dead, &debug.Hint{
+            Msg: "Use any of these types: Char, Bool, Int or Float", 
+            Code: "Type ",
+        })
+        p.Dead = true
+        p.skipToNewLine()
+
+        return typeConstruct
+    }
+
     typeConstruct = append(typeConstruct, ast.Identifier{Symbol: p.consume().Text})
 
     current := p.current().Info
@@ -37,6 +53,8 @@ func (p *Parser) checkType() bool {
     case tokens.Float:
         return true
     case tokens.Bool:
+        return true
+    case tokens.Identifier:
         return true
     }
     return false

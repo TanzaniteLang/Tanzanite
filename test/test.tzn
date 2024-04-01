@@ -1,14 +1,11 @@
-fun printf(format: Char*, ...): Int
+fun printf(format: Char**, ...)
 end
 
 fun getchar(): Int
 end
 
 fun main(): Int
-  lol -
-  gg = 0
-
-  c: Char = 0
+  c: Char
 
   while true
     printf "Write a letter\nType Q to quit\n"
