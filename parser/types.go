@@ -67,7 +67,7 @@ func (p *Parser) parsePrimaryExpr() ast.Expression {
 
     switch tok {
     case tokens.Identifier:
-        fn, ok := p.env.Fns[p.current().Text]
+        fn, ok := p.Globals.Scope[p.current().Text]
         if ok && !p.parsingFn { // This is a function call
             return p.parseFnCall(fn)
         }

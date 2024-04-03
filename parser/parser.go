@@ -4,9 +4,22 @@ import (
     "codeberg.org/Tanzanite/Tanzanite/tokens"
     "codeberg.org/Tanzanite/Tanzanite/lexer"
     "codeberg.org/Tanzanite/Tanzanite/ast"
-    "codeberg.org/Tanzanite/Tanzanite/env"
     "codeberg.org/Tanzanite/Tanzanite/debug"
 )
+
+type GlobalScope struct {
+    Scope map[string]*ast.FunctionDecl
+}
+
+func (g *GlobalScope) RegisterFunction(name string, fn *ast.FunctionDecl) {
+    g.Scope[name] = fn
+}
+
+func (g *GlobalScope) HasFunction(name string) bool {
+    _, ok := g.Scope[name]
+
+    return ok
+}
 
 type Token struct {
     Info tokens.Token
@@ -16,7 +29,9 @@ type Token struct {
 
 type Parser struct {
     tokens []Token
-    env env.Environment
+    Globals GlobalScope
+
+    scopes []*ast.Body
 
     pos int
     source string
@@ -30,15 +45,35 @@ type Parser struct {
 
 func NewParser(file string) *Parser {
     return &Parser{
-        tokens: make([]Token, 0),
-        env: env.NewEnv(),
+        tokens: []Token{},
+        Globals: GlobalScope{
+            Scope: map[string]*ast.FunctionDecl{},
+        },
+        source: file,
+        scopes: []*ast.Body{},
+        pos: 0,
         parsingFn: false,
         requireBrackets: false,
-        source: file,
-        Dead: false,
         warn: false,
-        pos: 0,
+        Dead: false,
     }
+}
+
+func (p *Parser) findVariable(name string) *ast.VarDeclaration {
+    last := len(p.scopes) - 1
+    for last >= 0 {
+        decl, ok := p.scopes[last].Scope[name]
+        if ok {
+            return decl
+        }
+        last--
+    }
+    return nil
+}
+
+func (p *Parser) RegisterVar(name string, decl *ast.VarDeclaration) {
+    last := p.scopes[len(p.scopes) - 1]
+    last.RegisterVar(name, decl)
 }
 
 func (p *Parser) notEof() bool {
@@ -70,6 +105,14 @@ func (p *Parser) skipToNewLine() {
     }
 }
 
+func (p *Parser) AppendScope(scope *ast.Body) {
+    p.scopes = append(p.scopes, scope)
+}
+
+func (p *Parser) PopScope() {
+    p.scopes = p.scopes[:len(p.scopes) - 1]
+}
+
 func (p *Parser) ProduceAST(code string) ast.Program {
     lex := lexer.InitLexer(code)
 
@@ -83,11 +126,17 @@ func (p *Parser) ProduceAST(code string) ast.Program {
         }
     }
 
-    prog := ast.Program {Body: make([]ast.Statement, 0)}
+    prog := ast.Program {
+        Body: ast.Body{
+            Scope: map[string]*ast.VarDeclaration{},
+            Body: []ast.Statement{},
+        },
+    }
+
+    p.AppendScope(&prog.Body)
 
     for p.notEof() {
-        prog.Debug = append(prog.Debug, debug.NewSourceLocation(p.source, p.current().Position.Line, p.current().Position.Column))
-        prog.Body = append(prog.Body, p.parseStatement())
+        prog.Body.Append(p.parseStatement())
     }
 
     return prog
@@ -100,7 +149,7 @@ func (p *Parser) parseStatement() ast.Statement {
     case tokens.Fun:
         p.consume()
         fn := p.parseFunction(true).(ast.FunctionDecl)
-        p.env.Fns[fn.Name] = &fn
+        p.Globals.RegisterFunction(fn.Name, &fn)
 
         return fn
     case tokens.Break:
@@ -138,8 +187,8 @@ func (p *Parser) parseStatement() ast.Statement {
             Value: expr,
         }
     case tokens.Identifier:
-        fn, ok := p.env.Fns[p.current().Text]
-        if ok { // This is a function call
+        if p.Globals.HasFunction(p.current().Text) {
+            fn, _ := p.Globals.Scope[p.current().Text]
             if fn.Failed {
                 c := p.current()
                 p.consume()
@@ -156,14 +205,15 @@ func (p *Parser) parseStatement() ast.Statement {
             return p.parseFnCall(fn)
         }
 
-        _, ok = p.env.Vars[p.current().Text]
-        if !ok {
+        decl := p.findVariable(p.current().Text)
+
+        if decl == nil {
             possiblyVar := p.parseVarDeclaration()
             if possiblyVar == nil {
                 return nil
             }
             stmt := possiblyVar.(ast.VarDeclaration)
-            p.env.Vars[stmt.Name] = &stmt
+            p.RegisterVar(stmt.Name, &stmt)
             return stmt
         }
         return p.parseAssignExpr()

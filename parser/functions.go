@@ -1,153 +1,79 @@
 package parser
 
 import (
-    "fmt"
     "codeberg.org/Tanzanite/Tanzanite/tokens"
     "codeberg.org/Tanzanite/Tanzanite/ast"
     "codeberg.org/Tanzanite/Tanzanite/debug"
 )
 
-func (p *Parser) variadicCall(fndecl *ast.FunctionDecl) []ast.Expression {
-    args := make([]ast.Expression, 0)
-    needBracket := p.requireBrackets
-    argCount := len(fndecl.Arguments) - 1 // because variadic
-
-    if needBracket && p.current().Info == tokens.LBracket {
-        p.consume()
-    } else if needBracket && p.current().Info != tokens.LBracket {
-        c := p.current()
-        dbg := debug.NewSourceLocation(p.source, c.Position.Line, c.Position.Column)
-        dbg.ThrowError("Function call here is required to have (!", p.warn || p.Dead, &debug.Hint{
-            Msg: "Add (",
-            Code: "(",
-        })
-        p.Dead = true
-    } else if p.current().Info == tokens.LBracket {
-        needBracket = true
-        p.consume()
-    }
-
-    for i := 0; i < argCount; i++ {
-        p.requireBrackets = true
-        expr := p.parseExpression()
-        if expr == nil {
-            debug.LogError("Invalid argument count for function \"" + fndecl.Name + "\"!", &debug.Hint{
-                Msg: fmt.Sprintf("Function requires %d arguments", argCount),
-            })
-            p.Dead = true
-        }
-        args = append(args, expr)
-        p.requireBrackets = false
-
-        if i + 1 == argCount {
-            break 
-        }
-
-        p.consume()
-    }
-
-    for p.current().Info == tokens.Comma {
-        p.consume()
-        p.requireBrackets = true
-        args = append(args, p.parseExpression())
-        p.requireBrackets = false
-    }
-
-    if needBracket && p.current().Info == tokens.RBracket {
-        p.consume()
-    } else if needBracket && p.current().Info != tokens.RBracket {
-        c := p.previous()
-        dbg := debug.NewSourceLocation(p.source, c.Position.Line, c.Position.Column + 1)
-        dbg.ThrowError("Function call is missing )!", p.warn || p.Dead, &debug.Hint{
-            Msg: "Add )",
-            Code: ")",
-        })
-        p.Dead = true
-        p.skipToNewLine()
-    }
-
-    return args
-}
-
-func (p *Parser) functionCall(fndecl *ast.FunctionDecl) []ast.Expression {
-    args := make([]ast.Expression, 0)
-    needBracket := p.requireBrackets
-    argCount := len(fndecl.Arguments)
-
-    if needBracket && p.current().Info == tokens.LBracket {
-        p.consume()
-    } else if needBracket && p.current().Info != tokens.LBracket {
-        c := p.current()
-        dbg := debug.NewSourceLocation(p.source, c.Position.Line, c.Position.Column)
-        dbg.ThrowError("Function call here is required to have (!", p.warn || p.Dead, &debug.Hint{
-            Msg: "Add (",
-            Code: "(",
-        })
-        p.Dead = true
-    } else if p.current().Info == tokens.LBracket {
-        needBracket = true
-        p.consume()
-    }
-
-    for i := 0; i < argCount; i++ {
-        p.requireBrackets = true
-        expr := p.parseExpression()
-        e := fndecl.Arguments[i].(ast.VarDeclaration)
-
-        if expr == nil && e.Value == nil {
-            debug.LogError("Invalid argument count for function \"" + fndecl.Name + "\"!", &debug.Hint{
-                Msg: fmt.Sprintf("Function requires %d arguments", argCount),
-            })
-            p.Dead = true
-        }
-
-        if expr == nil && e.Value != nil {
-            args = append(args, e.Value)
-            p.requireBrackets = false
-            if i + 1 == argCount {
-                break 
-            }
-            continue
-        } else {
-            args = append(args, expr)
-        }
-        p.requireBrackets = false
-
-        if i + 1 == argCount {
-            break 
-        }
-
-        if p.current().Info == tokens.Comma {
-            p.consume()
-        }
-    }
-
-    if needBracket && p.current().Info == tokens.RBracket {
-        p.consume()
-    } else if needBracket && p.current().Info != tokens.RBracket {
-        c := p.previous()
-        dbg := debug.NewSourceLocation(p.source, c.Position.Line, c.Position.Column + 1)
-        dbg.ThrowError("Function call is missing )!", p.warn || p.Dead, &debug.Hint{
-            Msg: "Add )",
-            Code: ")",
-        })
-        p.Dead = true
-        p.skipToNewLine()
-    }
-
-    return args
-}
-
 func (p *Parser) parseFnCall(fndecl *ast.FunctionDecl) ast.FunctionCall {
     p.parsingFn = true
+    calle_pos := p.current().Position
     calle := p.parseExpression()
     p.parsingFn = false
     args := make([]ast.Expression, 0)
 
+    needBracket := p.requireBrackets
+
+    argCount := len(fndecl.Arguments)
     if fndecl.Variadic {
-        args = p.variadicCall(fndecl)
-    } else {
-        args = p.functionCall(fndecl)
+        argCount--
+    }
+
+    if needBracket && p.current().Info != tokens.LBracket {
+        c := p.current()
+        dbg := debug.NewSourceLocation(p.source, c.Position.Line, c.Position.Column)
+        dbg.ThrowError("Function call here is required to have (!", p.warn || p.Dead, &debug.Hint{
+            Msg: "Add (",
+            Code: "(",
+        })
+        p.Dead = true
+    }
+
+    if p.current().Info == tokens.LBracket {
+        needBracket = true
+        p.consume()
+    }
+
+    if argCount > 0 {
+        if !needBracket && calle_pos.Line != p.current().Position.Line {
+            c := p.current()
+            dbg := debug.NewSourceLocation(p.source, c.Position.Line, c.Position.Column)
+            dbg.ThrowError("Function args must start on the same line as calle!", p.warn || p.Dead, nil)
+            p.Dead = true
+            return ast.FunctionCall{
+                Calle: calle,
+                Args: args,
+            }
+        }
+
+        for {
+            p.requireBrackets = true
+            expr := p.parseExpression()
+            p.requireBrackets = false
+            if expr == nil {
+                break
+            }
+            args = append(args, expr)
+
+            if p.current().Info != tokens.Comma {
+                break
+            }
+
+            p.consume()
+        }
+    }
+
+    if needBracket && p.current().Info != tokens.RBracket {
+        c := p.previous()
+        dbg := debug.NewSourceLocation(p.source, c.Position.Line, c.Position.Column)
+        dbg.ThrowError("Function call needs to close with )!", p.warn || p.Dead, &debug.Hint{
+            Msg: "Add )",
+            Code: ")",
+        })
+        p.Dead = true
+    } else if needBracket && p.current().Info == tokens.RBracket {
+        p.consume()
     }
 
     return ast.FunctionCall{
@@ -252,17 +178,23 @@ func (p *Parser) parseFunction(isFun bool) ast.Statement {
         Failed: fail,
         ReturnType: returnType,
         Immutable: isFun,
-        Body: make([]ast.Statement, 0),
+        Body: ast.Body{
+            Scope: map[string]*ast.VarDeclaration{},
+            Body: []ast.Statement{},
+        },
         Variadic: variadic,
     }
 
+    p.AppendScope(&fn.Body)
+
     current = p.current()
     for current.Info != tokens.End {
-        fn.Debug = append(fn.Debug, debug.NewSourceLocation(p.source, current.Position.Line, current.Position.Column))
-        fn.Body = append(fn.Body, p.parseStatement())
+        fn.Body.Append(p.parseStatement())
         current = p.current()
     }
     p.consume()
+
+    p.PopScope()
 
     return fn
 }

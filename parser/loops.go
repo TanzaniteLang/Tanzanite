@@ -13,14 +13,19 @@ func (p *Parser) parseBegin() ast.Statement {
         Condition: nil,
         Until: false,
         DoWhile: true,
+        Body: ast.Body{
+            Scope: map[string]*ast.VarDeclaration{},
+            Body: []ast.Statement{},
+        },
     }
 
     current := p.current()
+    p.AppendScope(&stat.Body)
     for current.Info != tokens.End {
-        stat.Debug = append(stat.Debug, debug.NewSourceLocation(p.source, current.Position.Line, current.Position.Column))
-        stat.Body = append(stat.Body, p.parseStatement())
+        stat.Body.Append(p.parseStatement())
         current = p.current()
     }
+    p.PopScope()
 
     p.consume()
 
@@ -68,14 +73,19 @@ func (p *Parser) parseWhile(until bool) ast.Statement {
         Condition: expr,
         Until: until,
         DoWhile: false,
+        Body: ast.Body{
+            Scope: map[string]*ast.VarDeclaration{},
+            Body: []ast.Statement{},
+        },
     }
 
+    p.AppendScope(&stat.Body)
     current := p.current()
     for current.Info != tokens.End {
-        stat.Debug = append(stat.Debug, debug.NewSourceLocation(p.source, current.Position.Line, current.Position.Column))
-        stat.Body = append(stat.Body, p.parseStatement())
+        stat.Body.Append(p.parseStatement())
         current = p.current()
     }
+    p.PopScope()
 
     p.consume()
 

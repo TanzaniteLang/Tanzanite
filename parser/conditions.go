@@ -9,16 +9,22 @@ import (
 func (p *Parser) parseElse() ast.Statement {
     p.consume()
 
-    stat := ast.ElseStatement{}
-
-    current := p.current()
-    for current.Info != tokens.End {
-        stat.Debug = append(stat.Debug, debug.NewSourceLocation(p.source, current.Position.Line, current.Position.Column))
-        stat.Body = append(stat.Body, p.parseStatement())
-        current = p.current()
+    stat := ast.ElseStatement{
+        Body: ast.Body{
+            Scope: map[string]*ast.VarDeclaration{},
+            Body: []ast.Statement{},
+        },
     }
 
+    p.AppendScope(&stat.Body)
+    current := p.current()
+    for current.Info != tokens.End {
+        stat.Body.Append(p.parseStatement())
+        current = p.current()
+    }
     p.consume()
+
+    p.PopScope()
 
     return stat
 }
@@ -43,15 +49,19 @@ func (p *Parser) parseElsif() ast.Statement {
 
     stat := ast.ElsifStatement{
         Condition: expr,
-        Next: nil,
+        Body: ast.Body{
+            Scope: map[string]*ast.VarDeclaration{},
+            Body: []ast.Statement{},
+        },
     }
 
+    p.AppendScope(&stat.Body)
     current := p.current()
     for current.Info != tokens.End && current.Info != tokens.Elsif && current.Info != tokens.Else {
-        stat.Debug = append(stat.Debug, debug.NewSourceLocation(p.source, current.Position.Line, current.Position.Column))
-        stat.Body = append(stat.Body, p.parseStatement())
+        stat.Body.Append(p.parseStatement())
         current = p.current()
     }
+    p.PopScope()
 
     if current.Info == tokens.Elsif {
         stat.Next = p.parseElsif()
@@ -85,15 +95,20 @@ func (p *Parser) parseIf(unless bool) ast.Statement {
     stat := ast.IfStatement{
         Condition: expr,
         Unless: unless,
-        Next: nil,
+        Body: ast.Body{
+            Scope: map[string]*ast.VarDeclaration{},
+            Body: []ast.Statement{},
+        },
     }
 
+    p.AppendScope(&stat.Body)
     current := p.current()
     for current.Info != tokens.End && current.Info != tokens.Elsif && current.Info != tokens.Else {
-        stat.Debug = append(stat.Debug, debug.NewSourceLocation(p.source, current.Position.Line, current.Position.Column))
-        stat.Body = append(stat.Body, p.parseStatement())
+        stat.Body.Append(p.parseStatement())
         current = p.current()
     }
+
+    p.PopScope()
 
     if current.Info == tokens.Elsif {
         stat.Next = p.parseElsif()

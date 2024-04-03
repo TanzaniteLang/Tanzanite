@@ -81,11 +81,12 @@ func (f *FunctionDecl) StringifyHead() string {
 
 func (f *FunctionDecl) StringifyBody() string {
     body := ""
-
+    /*
     for i, stmt := range f.Body {
         body += f.Debug[i].Stringify() + "\n"
         body += strExpr(stmt) + ";\n"
     }
+    */
 
     return body
 }
@@ -114,11 +115,12 @@ func (i *IfStatement) Stringify() string {
     } else {
         code = fmt.Sprintf("if (%s) {\n", strExpr(i.Condition))
     }
-
+/*
     for iter, stmt := range i.Body {
         code += i.Debug[iter].Stringify() + "\n"
         code += strExpr(stmt) + ";\n"
     }
+    */
     code += "}"
 
     if i.Next != nil {
@@ -131,10 +133,11 @@ func (i *IfStatement) Stringify() string {
 
 func (e *ElsifStatement) Stringify() string {
     code := fmt.Sprintf("else if (%s) {\n", strExpr(e.Condition))
+    /*
     for i, stmt := range e.Body {
         code += e.Debug[i].Stringify() + "\n"
         code += strExpr(stmt) + ";\n"
-    }
+    }*/
     code += "}"
 
     if e.Next != nil {
@@ -147,10 +150,11 @@ func (e *ElsifStatement) Stringify() string {
 
 func (e *ElseStatement) Stringify() string {
     code := "else {\n"
+    /*
     for i, stmt := range e.Body {
         code += e.Debug[i].Stringify() + "\n"
         code += strExpr(stmt) + ";\n"
-    }
+    }*/
     code += "}"
 
     return code
@@ -165,20 +169,24 @@ func (w *WhileStatement) Stringify() string {
             code = fmt.Sprintf("while (%s) {\n", strExpr(w.Condition))
         }
 
+        /*
         for i, stmt := range w.Body {
             code += w.Debug[i].Stringify() + "\n"
             code += strExpr(stmt) + ";\n"
         }
+        */
         code += "}"
 
         return code
     }
 
     code := "do {\n"
+    /*
     for i, stmt := range w.Body {
         code += w.Debug[i].Stringify() + "\n"
         code += strExpr(stmt) + ";\n"
     }
+    */
     code += "} "
 
     if w.Until {

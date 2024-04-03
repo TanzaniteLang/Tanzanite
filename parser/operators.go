@@ -19,7 +19,7 @@ func (p *Parser) parseAdditiveExpr() ast.Expression {
 }
 
 func (p *Parser) parseMultiplicativeExpr() ast.Expression {
-    left := p.parsePrimaryExpr()
+    left := p.parseAccessExpr()
 
     for p.current().Text == "/" ||
         p.current().Text == "*" ||
@@ -27,11 +27,26 @@ func (p *Parser) parseMultiplicativeExpr() ast.Expression {
         p.current().Text == "//" ||
         p.current().Text == "%" {
         operator := p.consume().Text
-        right := p.parsePrimaryExpr()
+        right := p.parseAccessExpr()
         left = ast.BinaryExpr{
             Left: left,
             Right: right,
             Operator: operator,
+        }
+    }
+
+    return left
+}
+
+func (p *Parser) parseAccessExpr() ast.Expression {
+    left := p.parsePrimaryExpr()
+
+    for p.current().Text == "." {
+        p.consume()
+        right := p.parseAccessExpr()
+        left = ast.FieldAccess{
+            Left: left,
+            Right: right,
         }
     }
 

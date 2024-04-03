@@ -5,7 +5,6 @@ import (
     "os"
     "os/exec"
     "codeberg.org/Tanzanite/Tanzanite/parser"
-    "codeberg.org/Tanzanite/Tanzanite/ast"
     "codeberg.org/Tanzanite/Tanzanite/ccg"
     "github.com/gookit/goutil/dump"
 )
@@ -29,10 +28,6 @@ func main() {
     par := parser.NewParser(cmdArgs[0])
     out := par.ProduceAST(string(code))
 
-    if par.Dead {
-        os.Exit(1)
-    }
-
     dump.Config(func (o *dump.Options) {
         o.MaxDepth = 100
     })
@@ -43,6 +38,10 @@ func main() {
         os.Exit(0)
     }
 
+    if par.Dead {
+        os.Exit(1)
+    }
+
     output := ""
 
     if len(cmdArgs) == 3 {
@@ -51,10 +50,8 @@ func main() {
 
     src := ccg.NewSource("")
 
-    for _, stmt := range out.Body {
-        if stmt.GetKind() == ast.FunctionDeclType {
-            src.Functions = append(src.Functions, stmt.(ast.FunctionDecl))
-        }
+    for _, stmt := range par.Globals.Scope {
+        src.Functions = append(src.Functions, stmt)
     }
 
     if len(output) > 0 {

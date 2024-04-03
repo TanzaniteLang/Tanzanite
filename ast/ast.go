@@ -1,15 +1,14 @@
 package ast
 
-import "codeberg.org/Tanzanite/Tanzanite/debug"
-
 type NodeType int
 
 const (
     ProgramType = 0
+    BodyType = 1
 
     // Types
-    IntLiteralType = 1
-    FloatLiteralType = 2
+    IntLiteralType = 2
+    FloatLiteralType = 3
     StringType = 4
     CharType = 5
     BoolType = 6
@@ -20,36 +19,61 @@ const (
 
     // Expressions
     BinaryExprType = 11
-    UnaryExprType = 12
-    VarDeclarationType = 13
-    AssignExprType = 14
-    ReturnExprType = 15
-    BracketExprType = 16
-    ConditionalExprType = 17
-    ForwardPipeExprType = 18
+    FieldAccessType = 12
+    UnaryExprType = 13
+    VarDeclarationType = 14
+    AssignExprType = 15
+    ReturnExprType = 16
+    BracketExprType = 17
+    ConditionalExprType = 18
+    ForwardPipeExprType = 19
 
     // Functions
-    VariadicArgType = 19
-    FunctionDeclType = 20
-    FunctionCallType = 21
+    VariadicArgType = 20
+    FunctionDeclType = 21
+    DefFunctionDecl = 22
+    FunctionCallType = 23
 
     // Conditions
-    IfStatementType = 22
-    ElsifStatementType = 23
-    ElseStatementType = 24
+    IfStatementType = 24
+    ElsifStatementType = 25
+    ElseStatementType = 26
 
     // Loops
-    WhileStatementType = 25
-    LoopControlStatementType = 26
+    WhileStatementType = 27
+    LoopControlStatementType = 28
 )
 
 type Statement interface {
     GetKind() NodeType
 }
 
-type Program struct {
+type Body struct {
+    Scope map[string]*VarDeclaration
     Body []Statement
-    Debug []debug.SourceLocation
+    // TODO: Debug
+}
+
+func (b Body) GetKind() NodeType {
+    return BodyType
+}
+
+func (b *Body) RegisterVar(name string, val *VarDeclaration) {
+    b.Scope[name] = val    
+}
+
+func (b *Body) HasVar(name string) bool {
+    _, ok := b.Scope[name]
+
+    return ok
+}
+
+func (b *Body) Append(stat Statement) {
+    b.Body = append(b.Body, stat)
+}
+
+type Program struct {
+    Body Body
 }
 
 type Expression Statement
@@ -77,6 +101,15 @@ type BinaryExpr struct {
     Left Expression
     Right Expression
     Operator string
+}
+
+type FieldAccess struct {
+    Left Expression
+    Right Expression
+}
+
+func (f FieldAccess) GetKind() NodeType {
+    return FieldAccessType
 }
 
 type TypeLiteral struct {
@@ -176,8 +209,7 @@ type FunctionDecl struct {
     Immutable bool // True if this is FUN function
     Variadic bool
     Failed bool
-    Body []Statement
-    Debug []debug.SourceLocation
+    Body Body
 }
 
 func (f FunctionDecl) GetKind() NodeType {
@@ -219,9 +251,8 @@ type AssignExpr struct {
 type IfStatement struct {
     Condition Expression
     Unless bool
-    Body []Statement
     Next Statement
-    Debug []debug.SourceLocation
+    Body Body
 }
 
 func (i IfStatement) GetKind() NodeType {
@@ -230,9 +261,8 @@ func (i IfStatement) GetKind() NodeType {
 
 type ElsifStatement struct {
     Condition Expression
-    Body []Statement
-    Debug []debug.SourceLocation
     Next Statement
+    Body Body
 }
 
 func (e ElsifStatement) GetKind() NodeType {
@@ -240,8 +270,7 @@ func (e ElsifStatement) GetKind() NodeType {
 }
 
 type ElseStatement struct {
-    Body []Statement
-    Debug []debug.SourceLocation
+    Body Body
 }
 
 func (e ElseStatement) GetKind() NodeType {
@@ -252,8 +281,7 @@ type WhileStatement struct {
     Condition Expression
     Until bool
     DoWhile bool
-    Body []Statement
-    Debug []debug.SourceLocation
+    Body Body
 }
 
 func (w WhileStatement) GetKind() NodeType {

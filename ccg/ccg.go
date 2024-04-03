@@ -11,7 +11,7 @@ var bootstrap string
 
 type Source struct {
     Name string
-    Functions []ast.FunctionDecl
+    Functions []*ast.FunctionDecl
 
     source string
 }
@@ -19,7 +19,6 @@ type Source struct {
 func NewSource(name string) *Source {
     return &Source{
         Name: name,
-        Functions: make([]ast.FunctionDecl, 0),
         // Tanzanite boilerplate
         source: bootstrap,
     }
@@ -32,11 +31,13 @@ func (s *Source) Generate() string {
 
     s.source += "\n"
 
+    /*
     for _, fn := range s.Functions {
         if len(fn.Body) > 0 {
             s.source += fn.Stringify() + "\n"
         }
     }
+    */
 
     return s.source[:len(s.source) - 2]
 }
