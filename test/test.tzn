@@ -4,21 +4,23 @@ end
 fun getchar(): int
 end
 
-fun add(a: Int, b: Int): Int
+fun add(a: int, b: int): int
 end
 
-fun add(a: Int = add(2, 2), b: Int = 3): Int
+fun add(a: int = add(2, 2), b: int = 3): int
   return a + b
 end
 
 fun main(): int
+  printf "2 + 2 = %d\n", add(2, 2)
+  printf "add() = %d\nadd(7) = %d\n", add(), add(7)
+
+
   printf "%p\n", nil + 10
 
   heh: void* = nil
   printf "%p %p\n", &heh, heh + 7
 
-  printf "2 + 2 = %d\n", add(2, 2)
-  printf "add() = %d\nadd(7) = %d\n", add(), add(7)
 
   c: char
 
