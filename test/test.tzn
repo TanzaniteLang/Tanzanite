@@ -1,11 +1,11 @@
 fun printf(format: char**, ...): int
 end
 
-fun add(a: int, b: int): int
-  return a + b
+fun getchar(): int
 end
 
-fun getchar(): int
+fun add(a: Int = 4, b: Int = 3): Int
+  return a + b
 end
 
 fun main(): int
@@ -15,6 +15,7 @@ fun main(): int
   printf "%p %p\n", &heh, heh + 7
 
   printf "2 + 2 = %d\n", add(2, 2)
+  printf "add() = %d\nadd(7) = %d\n", add(), add(7)
 
   c: char
 

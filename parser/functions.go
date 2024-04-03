@@ -92,19 +92,34 @@ func (p *Parser) functionCall(fndecl *ast.FunctionDecl) []ast.Expression {
     for i := 0; i < argCount; i++ {
         p.requireBrackets = true
         expr := p.parseExpression()
-        if expr == nil {
+        e := fndecl.Arguments[i].(ast.VarDeclaration)
+
+        if expr == nil && e.Value == nil {
             debug.LogError("Invalid argument count for function \"" + fndecl.Name + "\"!", &debug.Hint{
                 Msg: fmt.Sprintf("Function requires %d arguments", argCount),
             })
             p.Dead = true
         }
-        args = append(args, expr)
+
+        if expr == nil && e.Value != nil {
+            args = append(args, e.Value)
+            p.requireBrackets = false
+            if i + 1 == argCount {
+                break 
+            }
+            continue
+        } else {
+            args = append(args, expr)
+        }
         p.requireBrackets = false
 
         if i + 1 == argCount {
             break 
         }
-        p.consume()
+
+        if p.current().Info == tokens.Comma {
+            p.consume()
+        }
     }
 
     if needBracket && p.current().Info == tokens.RBracket {
