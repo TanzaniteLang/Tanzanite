@@ -5,6 +5,7 @@ import (
     "os"
     "os/exec"
     "codeberg.org/Tanzanite/Tanzanite/parser"
+    "codeberg.org/Tanzanite/Tanzanite/analyzer"
     "codeberg.org/Tanzanite/Tanzanite/ccg"
     "github.com/gookit/goutil/dump"
 )
@@ -41,6 +42,14 @@ func main() {
     if par.Dead {
         os.Exit(1)
     }
+
+    analyze := analyzer.Analyzer{
+        Parser: par,
+        Program: &out,
+    }
+    analyze.Analyze()
+
+    os.Exit(0) // TODO: Cannot afford CCG yet
 
     output := ""
 

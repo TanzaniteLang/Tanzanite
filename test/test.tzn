@@ -8,6 +8,8 @@ fun add(a: int, b: int): int
   return a + b
 end
 
+hm: Char = 'A' + 4
+
 fun main(): int
   printf "2 + 2 = %d\n", add(2, 2)
   printf "add() = %d\nadd(7) = %d\n", add(), add(7)
