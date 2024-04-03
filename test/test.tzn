@@ -18,7 +18,7 @@ fun main(): int
 
   c: char
 
-  while true
+  begin
     printf "Write a letter\nType Q to quit\n"
 
     c = getchar
@@ -30,7 +30,7 @@ fun main(): int
     end
 
     break
-  end
+  end while true
 
   return 0
 end

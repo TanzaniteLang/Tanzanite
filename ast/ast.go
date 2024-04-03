@@ -251,6 +251,7 @@ func (e ElseStatement) GetKind() NodeType {
 type WhileStatement struct {
     Condition Expression
     Until bool
+    DoWhile bool
     Body []Statement
     Debug []debug.SourceLocation
 }

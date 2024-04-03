@@ -121,6 +121,8 @@ func (p *Parser) parseStatement() ast.Statement {
         return p.parseWhile(false)
     case tokens.Until:
         return p.parseWhile(true)
+    case tokens.Begin:
+        return p.parseBegin()
     case tokens.Return:
         p.consume()
         expr := p.parseExpression()

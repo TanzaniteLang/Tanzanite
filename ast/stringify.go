@@ -157,18 +157,35 @@ func (e *ElseStatement) Stringify() string {
 }
 
 func (w *WhileStatement) Stringify() string {
-    code := ""
-    if w.Until {
-        code = fmt.Sprintf("while (!(%s)) {\n", strExpr(w.Condition))
-    } else {
-        code = fmt.Sprintf("while (%s) {\n", strExpr(w.Condition))
+    if !w.DoWhile {
+        code := ""
+        if w.Until {
+            code = fmt.Sprintf("while (!(%s)) {\n", strExpr(w.Condition))
+        } else {
+            code = fmt.Sprintf("while (%s) {\n", strExpr(w.Condition))
+        }
+
+        for i, stmt := range w.Body {
+            code += w.Debug[i].Stringify() + "\n"
+            code += strExpr(stmt) + ";\n"
+        }
+        code += "}"
+
+        return code
     }
 
+    code := "do {\n"
     for i, stmt := range w.Body {
         code += w.Debug[i].Stringify() + "\n"
         code += strExpr(stmt) + ";\n"
     }
-    code += "}"
+    code += "} "
+
+    if w.Until {
+        code += fmt.Sprintf("while (!(%s))", strExpr(w.Condition))
+    } else {
+        code += fmt.Sprintf("while (%s)", strExpr(w.Condition))
+    }
 
     return code
 }

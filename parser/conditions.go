@@ -25,7 +25,7 @@ func (p *Parser) parseElse() ast.Statement {
 
 func (p *Parser) parseElsif() ast.Statement {
     c := p.consume()
-    index := p.pos + 1
+    index := p.pos
     start_line := c.Position.Line
 
     expr := p.parseExpression()
@@ -66,7 +66,7 @@ func (p *Parser) parseElsif() ast.Statement {
 
 func (p *Parser) parseIf(unless bool) ast.Statement {
     c := p.consume()
-    index := p.pos + 1
+    index := p.pos
     start_line := c.Position.Line
 
     expr := p.parseExpression()
