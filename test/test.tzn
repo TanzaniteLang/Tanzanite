@@ -4,7 +4,10 @@ end
 fun getchar(): int
 end
 
-fun add(a: Int = 4, b: Int = 3): Int
+fun add(a: Int, b: Int): Int
+end
+
+fun add(a: Int = add(2, 2), b: Int = 3): Int
   return a + b
 end
 
