@@ -7,13 +7,14 @@ import (
 )
 
 func (p *Parser) parseElse() ast.Statement {
-    p.consume()
+    start := p.consume()
 
     stat := ast.ElseStatement{
         Body: ast.Body{
             Scope: map[string]*ast.VarDeclaration{},
             Body: []ast.Statement{},
         },
+        Position: start.Position,
     }
 
     p.AppendScope(&stat.Body)
@@ -53,6 +54,7 @@ func (p *Parser) parseElsif() ast.Statement {
             Scope: map[string]*ast.VarDeclaration{},
             Body: []ast.Statement{},
         },
+        Position: c.Position,
     }
 
     p.AppendScope(&stat.Body)
@@ -99,6 +101,7 @@ func (p *Parser) parseIf(unless bool) ast.Statement {
             Scope: map[string]*ast.VarDeclaration{},
             Body: []ast.Statement{},
         },
+        Position: c.Position,
     }
 
     p.AppendScope(&stat.Body)

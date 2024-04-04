@@ -7,7 +7,7 @@ import (
 )
 
 func (p *Parser) parseBegin() ast.Statement {
-    p.consume()
+    start_pos := p.consume().Position
 
     stat := ast.WhileStatement{
         Condition: nil,
@@ -17,6 +17,7 @@ func (p *Parser) parseBegin() ast.Statement {
             Scope: map[string]*ast.VarDeclaration{},
             Body: []ast.Statement{},
         },
+        Position: start_pos,
     }
 
     current := p.current()
@@ -77,6 +78,7 @@ func (p *Parser) parseWhile(until bool) ast.Statement {
             Scope: map[string]*ast.VarDeclaration{},
             Body: []ast.Statement{},
         },
+        Position: c.Position,
     }
 
     p.AppendScope(&stat.Body)

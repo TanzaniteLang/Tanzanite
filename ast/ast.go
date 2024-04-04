@@ -1,5 +1,7 @@
 package ast
 
+import "codeberg.org/Tanzanite/Tanzanite/tokens"
+
 type NodeType int
 
 const (
@@ -79,6 +81,7 @@ type Program struct {
 type Expression Statement
 
 type ConditionalExpr struct {
+    Position tokens.Position
     Condition Expression
     TrueExpr Expression
     FalseExpr Expression
@@ -89,6 +92,7 @@ func (c ConditionalExpr) GetKind() NodeType {
 }
 
 type UnaryExpr struct {
+    Position tokens.Position
     Operator string
     Operand Expression
 }
@@ -98,12 +102,14 @@ func (u UnaryExpr) GetKind() NodeType {
 }
 
 type BinaryExpr struct {
+    Position tokens.Position
     Left Expression
     Right Expression
     Operator string
 }
 
 type FieldAccess struct {
+    Position tokens.Position
     Left Expression
     Right Expression
 }
@@ -121,6 +127,7 @@ func (t TypeLiteral) GetKind() NodeType {
 }
 
 type TypeCast struct {
+    Position tokens.Position
     Target TypeLiteral
     Expr Expression
 }
@@ -134,6 +141,7 @@ func (b BinaryExpr) GetKind() NodeType {
 }
 
 type ForwardPipeExpr struct {
+    Position tokens.Position
     Value Expression
     Target Expression
 }
@@ -143,6 +151,7 @@ func (f ForwardPipeExpr) GetKind() NodeType {
 }
 
 type Identifier struct {
+    Position tokens.Position
     Symbol string
 }
 
@@ -151,6 +160,7 @@ func (i Identifier) GetKind() NodeType {
 }
 
 type IntLiteral struct {
+    Position tokens.Position
     Value int64 
 }
 
@@ -159,6 +169,7 @@ func (i IntLiteral) GetKind() NodeType {
 }
 
 type FloatLiteral struct {
+    Position tokens.Position
     Value float64 
 }
 
@@ -167,6 +178,7 @@ func (f FloatLiteral) GetKind() NodeType {
 }
 
 type String struct {
+    Position tokens.Position
     Value string
 }
 
@@ -175,6 +187,7 @@ func (s String) GetKind() NodeType {
 }
 
 type Char struct {
+    Position tokens.Position
     Value string
 }
 
@@ -183,6 +196,7 @@ func (c Char) GetKind() NodeType {
 }
 
 type Bool struct {
+    Position tokens.Position
     Value string
 }
 
@@ -191,6 +205,7 @@ func (b Bool) GetKind() NodeType {
 }
 
 type VarDeclaration struct {
+    Position tokens.Position
     Name string
     Type []Statement
     Value Expression
@@ -203,6 +218,7 @@ func (v VariadicArg) GetKind() NodeType {
 }
 
 type FunctionDecl struct {
+    Position tokens.Position
     Name string
     Arguments []Statement
     ReturnType []Statement
@@ -217,6 +233,7 @@ func (f FunctionDecl) GetKind() NodeType {
 }
 
 type FunctionCall struct {
+    Position tokens.Position
     Calle Expression
     Args []Expression
 }
@@ -226,6 +243,7 @@ func (f FunctionCall) GetKind() NodeType {
 }
 
 type ReturnExpr struct {
+    Position tokens.Position
     Value Expression
 }
 
@@ -234,6 +252,7 @@ func (r ReturnExpr) GetKind() NodeType {
 }
 
 type BracketExpr struct {
+    Position tokens.Position
     Expr Expression
 }
 
@@ -242,6 +261,7 @@ func (b BracketExpr) GetKind() NodeType {
 }
 
 type AssignExpr struct {
+    Position tokens.Position
     Name Expression
     Value Expression
     Operator string
@@ -249,6 +269,7 @@ type AssignExpr struct {
 
 
 type IfStatement struct {
+    Position tokens.Position
     Condition Expression
     Unless bool
     Next Statement
@@ -260,6 +281,7 @@ func (i IfStatement) GetKind() NodeType {
 }
 
 type ElsifStatement struct {
+    Position tokens.Position
     Condition Expression
     Next Statement
     Body Body
@@ -270,6 +292,7 @@ func (e ElsifStatement) GetKind() NodeType {
 }
 
 type ElseStatement struct {
+    Position tokens.Position
     Body Body
 }
 
@@ -278,6 +301,7 @@ func (e ElseStatement) GetKind() NodeType {
 }
 
 type WhileStatement struct {
+    Position tokens.Position
     Condition Expression
     Until bool
     DoWhile bool
@@ -289,6 +313,7 @@ func (w WhileStatement) GetKind() NodeType {
 }
 
 type LoopControlStatement struct {
+    Position tokens.Position
     Break bool
 }
 

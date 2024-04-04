@@ -7,6 +7,7 @@ import (
     "codeberg.org/Tanzanite/Tanzanite/parser"
     "codeberg.org/Tanzanite/Tanzanite/analyzer"
     "codeberg.org/Tanzanite/Tanzanite/ccg"
+    "codeberg.org/Tanzanite/Tanzanite/ast"
     "github.com/gookit/goutil/dump"
 )
 
@@ -43,11 +44,20 @@ func main() {
         os.Exit(1)
     }
 
-    analyze := analyzer.Analyzer{
+    fmt.Println("Executing Analyzer!")
+
+    analyzator := analyzer.Analyzer{
         Parser: par,
         Program: &out,
+        Dead: false,
+        Source: cmdArgs[0],
+        Scopes: []*ast.Body{},
     }
-    analyze.Analyze()
+    analyzator.Analyze()
+
+    if analyzator.Dead {
+        os.Exit(1)
+    }
 
     os.Exit(0) // TODO: Cannot afford CCG yet
 

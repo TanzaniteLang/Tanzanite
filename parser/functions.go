@@ -79,10 +79,12 @@ func (p *Parser) parseFnCall(fndecl *ast.FunctionDecl) ast.FunctionCall {
     return ast.FunctionCall{
         Calle: calle,
         Args: args,
+        Position: calle_pos,
     }
 }
 
 func (p *Parser) parseFunction(isFun bool) ast.Statement {
+    start_pos := p.consume().Position
     name := p.consume()
     if p.current().Info != tokens.LBracket {
         c := p.current()
@@ -183,6 +185,7 @@ func (p *Parser) parseFunction(isFun bool) ast.Statement {
             Body: []ast.Statement{},
         },
         Variadic: variadic,
+        Position: start_pos,
     }
 
     p.AppendScope(&fn.Body)

@@ -147,20 +147,21 @@ func (p *Parser) parseStatement() ast.Statement {
     case tokens.Def:
         panic("Def functions are not yet implemented!")
     case tokens.Fun:
-        p.consume()
         fn := p.parseFunction(true).(ast.FunctionDecl)
         p.Globals.RegisterFunction(fn.Name, &fn)
 
         return fn
     case tokens.Break:
-        p.consume()
+        start_pos := p.consume().Position
         return ast.LoopControlStatement{
             Break: true,
+            Position: start_pos,
         }
     case tokens.Next:
-        p.consume()
+        start_pos := p.consume().Position
         return ast.LoopControlStatement{
             Break: false,
+            Position: start_pos,
         }
     case tokens.If:
         return p.parseIf(false)
@@ -173,7 +174,7 @@ func (p *Parser) parseStatement() ast.Statement {
     case tokens.Begin:
         return p.parseBegin()
     case tokens.Return:
-        p.consume()
+        start_pos := p.consume().Position
         expr := p.parseExpression()
         if expr == nil {
             c := p.previous()
@@ -185,6 +186,7 @@ func (p *Parser) parseStatement() ast.Statement {
 
         return ast.ReturnExpr{
             Value: expr,
+            Position: start_pos,
         }
     case tokens.Identifier:
         if p.Globals.HasFunction(p.current().Text) {

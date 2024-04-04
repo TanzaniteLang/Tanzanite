@@ -63,6 +63,7 @@ func (p *Parser) checkType() bool {
 }
 
 func (p *Parser) parsePrimaryExpr() ast.Expression {
+    start_pos := p.current().Position
     tok := p.current().Info
 
     switch tok {
@@ -71,20 +72,31 @@ func (p *Parser) parsePrimaryExpr() ast.Expression {
         if ok && !p.parsingFn { // This is a function call
             return p.parseFnCall(fn)
         }
-        return ast.Identifier{ Symbol: p.consume().Text }
+        return ast.Identifier{
+            Symbol: p.consume().Text,
+            Position: start_pos,
+        }
     case tokens.CharVal:
-        return ast.Char{ Value: p.consume().Text }
+        return ast.Char{
+            Value: p.consume().Text,
+            Position: start_pos,
+        }
     case tokens.StringVal:
-        return ast.String{ Value: p.consume().Text }
+        return ast.String{
+            Value: p.consume().Text,
+            Position: start_pos,
+        }
     case tokens.FloatVal:
         val, _ := strconv.ParseFloat(p.consume().Text, 64)
         return ast.FloatLiteral{
             Value: val,
+            Position: start_pos,
         }
     case tokens.IntVal:
         val, _ := strconv.ParseInt(p.consume().Text, 10, 64)
         return ast.IntLiteral{
             Value: val,
+            Position: start_pos,
         }
     case tokens.BoolVal:
         return ast.Bool{ Value: p.consume().Text }
@@ -97,6 +109,7 @@ func (p *Parser) parsePrimaryExpr() ast.Expression {
                     Type: p.parseType(),
                 },
                 Expr: nil,
+                Position: start_pos,
             }
             p.consume()
 
@@ -106,6 +119,7 @@ func (p *Parser) parsePrimaryExpr() ast.Expression {
         } else {
             val := ast.BracketExpr{
                 Expr: p.parseExpression(),
+                Position: start_pos,
             }
             p.consume()
 
@@ -113,7 +127,10 @@ func (p *Parser) parsePrimaryExpr() ast.Expression {
         }
     case tokens.Nil:
         p.consume()
-        return ast.Identifier{ Symbol: "nil" }
+        return ast.Identifier{
+            Symbol: "nil",
+            Position: start_pos,
+        }
     case tokens.Plus:
         return p.parseUnaryExpr()
     case tokens.Minus:

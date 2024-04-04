@@ -6,7 +6,7 @@ import (
 )
 
 func (t *TypeLiteral) Stringify() string {
-    return strType(t.Type)
+    return StrType(t.Type)
 }
 
 func (t *TypeCast) Stringify() string {
@@ -28,13 +28,13 @@ func (u *UnaryExpr) Stringify() string {
 
 func (v *VarDeclaration) Stringify() string {
     if v.Value != nil {
-        return fmt.Sprintf("%s %s = %s", strType(v.Type), v.Name, strExpr(v.Value))
+        return fmt.Sprintf("%s %s = %s", StrType(v.Type), v.Name, strExpr(v.Value))
     }
-    return fmt.Sprintf("%s %s", strType(v.Type), v.Name)
+    return fmt.Sprintf("%s %s", StrType(v.Type), v.Name)
 }
 
 func (v *VarDeclaration) StringifyAsArg() string {
-    return fmt.Sprintf("%s %s", strType(v.Type), v.Name)
+    return fmt.Sprintf("%s %s", StrType(v.Type), v.Name)
 }
 
 func (a *AssignExpr) Stringify() string {
@@ -63,7 +63,7 @@ func (f *ForwardPipeExpr) Stringify() string {
 }
 
 func (f *FunctionDecl) StringifyHead() string {
-    text := strType(f.ReturnType) + " " + f.Name + "("
+    text := StrType(f.ReturnType) + " " + f.Name + "("
 
     for _, arg := range f.Arguments {
         if arg.GetKind() == VarDeclarationType {
@@ -289,7 +289,7 @@ func strExpr(e Expression) string {
     }
 }
 
-func strType(t []Statement) string {
+func StrType(t []Statement) string {
     text := ""
 
     for _, part := range t {

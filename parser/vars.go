@@ -30,6 +30,7 @@ func (p *Parser) parseVarDeclaration() ast.Statement {
                 Name: ident.Text,
                 Type: varType,
                 Value: expr,
+                Position: ident.Position,
             }
         } else {
             return ast.VarDeclaration{
@@ -38,6 +39,7 @@ func (p *Parser) parseVarDeclaration() ast.Statement {
                 Value: ast.IntLiteral{
                     Value: 0,
                 },
+                Position: ident.Position,
             }
         }
     } else if p.current().Info == tokens.Assign {

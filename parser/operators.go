@@ -3,6 +3,7 @@ package parser
 import "codeberg.org/Tanzanite/Tanzanite/ast"
 
 func (p *Parser) parseAdditiveExpr() ast.Expression {
+    start_pos := p.current().Position
     left := p.parseMultiplicativeExpr()
 
     for p.current().Text == "+" || p.current().Text == "-" {
@@ -12,6 +13,7 @@ func (p *Parser) parseAdditiveExpr() ast.Expression {
             Left: left,
             Right: right,
             Operator: operator,
+            Position: start_pos,
         }
     }
 
@@ -19,6 +21,7 @@ func (p *Parser) parseAdditiveExpr() ast.Expression {
 }
 
 func (p *Parser) parseMultiplicativeExpr() ast.Expression {
+    start_pos := p.current().Position
     left := p.parseAccessExpr()
 
     for p.current().Text == "/" ||
@@ -32,6 +35,7 @@ func (p *Parser) parseMultiplicativeExpr() ast.Expression {
             Left: left,
             Right: right,
             Operator: operator,
+            Position: start_pos,
         }
     }
 
@@ -39,6 +43,7 @@ func (p *Parser) parseMultiplicativeExpr() ast.Expression {
 }
 
 func (p *Parser) parseAccessExpr() ast.Expression {
+    start_pos := p.current().Position
     left := p.parsePrimaryExpr()
 
     for p.current().Text == "." {
@@ -47,6 +52,7 @@ func (p *Parser) parseAccessExpr() ast.Expression {
         left = ast.FieldAccess{
             Left: left,
             Right: right,
+            Position: start_pos,
         }
     }
 
@@ -54,6 +60,7 @@ func (p *Parser) parseAccessExpr() ast.Expression {
 }
 
 func (p *Parser) parseShiftExpr() ast.Expression {
+    start_pos := p.current().Position
     left := p.parseAdditiveExpr()
 
     for p.current().Text == "<<" || p.current().Text == ">>" {
@@ -63,6 +70,7 @@ func (p *Parser) parseShiftExpr() ast.Expression {
             Left: left,
             Right: right,
             Operator: operator,
+            Position: start_pos,
         }
     }
 
@@ -70,6 +78,7 @@ func (p *Parser) parseShiftExpr() ast.Expression {
 }
 
 func (p *Parser) parseComparativeExpr() ast.Expression {
+    start_pos := p.current().Position
     left := p.parseShiftExpr()
 
     for p.current().Text == "<" ||
@@ -82,6 +91,7 @@ func (p *Parser) parseComparativeExpr() ast.Expression {
             Left: left,
             Right: right,
             Operator: operator,
+            Position: start_pos,
         }
     }
 
@@ -89,6 +99,7 @@ func (p *Parser) parseComparativeExpr() ast.Expression {
 }
 
 func (p *Parser) parseEqaulityExpr() ast.Expression {
+    start_pos := p.current().Position
     left := p.parseComparativeExpr()
 
     for p.current().Text == "==" ||
@@ -99,6 +110,7 @@ func (p *Parser) parseEqaulityExpr() ast.Expression {
             Left: left,
             Right: right,
             Operator: operator,
+            Position: start_pos,
         }
     }
 
@@ -106,6 +118,7 @@ func (p *Parser) parseEqaulityExpr() ast.Expression {
 }
 
 func (p *Parser) parseSpaceshipExpr() ast.Expression {
+    start_pos := p.current().Position
     left := p.parseEqaulityExpr()
 
     for p.current().Text == "<=>" {
@@ -115,6 +128,7 @@ func (p *Parser) parseSpaceshipExpr() ast.Expression {
             Left: left,
             Right: right,
             Operator: operator,
+            Position: start_pos,
         }
     }
 
@@ -122,6 +136,7 @@ func (p *Parser) parseSpaceshipExpr() ast.Expression {
 }
 
 func (p *Parser) parseBitwiseAndExpr() ast.Expression {
+    start_pos := p.current().Position
     left := p.parseSpaceshipExpr()
 
     for p.current().Text == "&" {
@@ -131,6 +146,7 @@ func (p *Parser) parseBitwiseAndExpr() ast.Expression {
             Left: left,
             Right: right,
             Operator: operator,
+            Position: start_pos,
         }
     }
 
@@ -138,6 +154,7 @@ func (p *Parser) parseBitwiseAndExpr() ast.Expression {
 }
 
 func (p *Parser) parseBitwiseXorExpr() ast.Expression {
+    start_pos := p.current().Position
     left := p.parseBitwiseAndExpr()
 
     for p.current().Text == "^" {
@@ -147,6 +164,7 @@ func (p *Parser) parseBitwiseXorExpr() ast.Expression {
             Left: left,
             Right: right,
             Operator: operator,
+            Position: start_pos,
         }
     }
 
@@ -154,6 +172,7 @@ func (p *Parser) parseBitwiseXorExpr() ast.Expression {
 }
 
 func (p *Parser) parseBitwiseOrExpr() ast.Expression {
+    start_pos := p.current().Position
     left := p.parseBitwiseXorExpr()
 
     for p.current().Text == "|" {
@@ -163,6 +182,7 @@ func (p *Parser) parseBitwiseOrExpr() ast.Expression {
             Left: left,
             Right: right,
             Operator: operator,
+            Position: start_pos,
         }
     }
 
@@ -170,6 +190,7 @@ func (p *Parser) parseBitwiseOrExpr() ast.Expression {
 }
 
 func (p *Parser) parseLogicalAndExpr() ast.Expression {
+    start_pos := p.current().Position
     left := p.parseBitwiseOrExpr()
 
     for p.current().Text == "&&" {
@@ -179,6 +200,7 @@ func (p *Parser) parseLogicalAndExpr() ast.Expression {
             Left: left,
             Right: right,
             Operator: operator,
+            Position: start_pos,
         }
     }
 
@@ -186,6 +208,7 @@ func (p *Parser) parseLogicalAndExpr() ast.Expression {
 }
 
 func (p *Parser) parseLogicalOrExpr() ast.Expression {
+    start_pos := p.current().Position
     left := p.parseLogicalAndExpr()
 
     for p.current().Text == "||" {
@@ -195,6 +218,7 @@ func (p *Parser) parseLogicalOrExpr() ast.Expression {
             Left: left,
             Right: right,
             Operator: operator,
+            Position: start_pos,
         }
     }
 
@@ -202,6 +226,7 @@ func (p *Parser) parseLogicalOrExpr() ast.Expression {
 }
 
 func (p *Parser) parseConditionalExpr() ast.Expression {
+    start_pos := p.current().Position
     condition := p.parseLogicalOrExpr()
 
     if p.current().Text == "?" {
@@ -219,6 +244,7 @@ func (p *Parser) parseConditionalExpr() ast.Expression {
             Condition: condition,
             TrueExpr: trueExpr,
             FalseExpr: falseExpr,
+            Position: start_pos,
         }
     }
 
@@ -226,6 +252,7 @@ func (p *Parser) parseConditionalExpr() ast.Expression {
 }
 
 func (p *Parser) parseForwardPipeExpr() ast.Expression {
+    start_pos := p.current().Position
     value := p.parseConditionalExpr()
 
     for p.current().Text == "|>" {
@@ -237,6 +264,7 @@ func (p *Parser) parseForwardPipeExpr() ast.Expression {
         return ast.ForwardPipeExpr{
             Value: value,
             Target: target,
+            Position: start_pos,
         }
     }
 
@@ -244,6 +272,7 @@ func (p *Parser) parseForwardPipeExpr() ast.Expression {
 }
 
 func (p *Parser) parseAssignExpr() ast.Expression {
+    start_pos := p.current().Position
     value := p.parseForwardPipeExpr()
 
     for p.current().Text == "=" ||
@@ -269,6 +298,7 @@ func (p *Parser) parseAssignExpr() ast.Expression {
             Name: value,
             Value: target,
             Operator: operator,
+            Position: start_pos,
         }
     }
 
@@ -276,11 +306,13 @@ func (p *Parser) parseAssignExpr() ast.Expression {
 }
 
 func (p *Parser) parseUnaryExpr() ast.Expression {
+    start_pos := p.current().Position
     operator := p.consume().Text
     operand := p.parseExpression()
 
     return ast.UnaryExpr{
         Operator: operator,
         Operand: operand,
+        Position: start_pos,
     }
 }
