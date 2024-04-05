@@ -36,9 +36,7 @@ func (p *Parser) parseVarDeclaration() ast.Statement {
             return ast.VarDeclaration{
                 Name: ident.Text,
                 Type: varType,
-                Value: ast.IntLiteral{
-                    Value: 0,
-                },
+                Value: nil,
                 Position: ident.Position,
             }
         }

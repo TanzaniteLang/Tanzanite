@@ -9,7 +9,7 @@ import (
 func (p *Parser) parseFnCall(fndecl *ast.FunctionDecl) ast.FunctionCall {
     p.parsingFn = true
     calle_pos := p.current().Position
-    calle := p.parseExpression()
+    calle := p.consume().Text
     p.parsingFn = false
     args := make([]ast.Expression, 0)
 
@@ -189,6 +189,13 @@ func (p *Parser) parseFunction(isFun bool) ast.Statement {
     }
 
     p.AppendScope(&fn.Body)
+
+    for _, arg := range args {
+        if arg.GetKind() == ast.VarDeclarationType {
+            v := arg.(ast.VarDeclaration)
+            fn.Body.RegisterVar(v.Name, &v)
+        }
+    }
 
     current = p.current()
     for current.Info != tokens.End {

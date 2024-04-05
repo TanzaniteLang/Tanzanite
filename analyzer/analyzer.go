@@ -36,7 +36,7 @@ func (a *Analyzer) PopScope() {
 }
 
 func (a *Analyzer) checkVariable(v *ast.VarDeclaration) {
-    if len(v.Type) > 0 {
+    if len(v.Type) > 0 && v.Value != nil {
         resultType := a.checkExpression(&v.Value)
         if resultType != ast.StrType(v.Type) {
             dbg := debug.NewSourceLocation(a.Source, v.Position.Line, v.Position.Column)
@@ -55,10 +55,16 @@ func (a *Analyzer) checkExpression(expr *ast.Expression) string {
         return "float"
     case ast.CharType:
         return "char"
+    case ast.StringType:
+        return "char*"
     case ast.BoolType:
         return "bool"
     case ast.IdentifierType:
         i := (*expr).(ast.Identifier)
+
+        if i.Symbol == "nil" {
+            return "void*"
+        }
 
         decl := a.findVariable(i.Symbol)
         if decl == nil {
@@ -81,21 +87,146 @@ func (a *Analyzer) checkExpression(expr *ast.Expression) string {
         }
 
         return left_expr 
+    case ast.FunctionCallType:
+        f := (*expr).(ast.FunctionCall)
+        return a.analyzeFnCall(&f)
+    case ast.TypeCastType:
+        t := (*expr).(ast.TypeCast)
+
+        return ast.StrType(t.Target.Type)
     }
 
     return ""
 }
 
+func (a *Analyzer) analyzeFn(fndecl *ast.FunctionDecl) {
+    a.AppendScope(&fndecl.Body)
+
+    need_default_value := false
+
+    for _, arg := range fndecl.Arguments {
+        if arg.GetKind() == ast.VarDeclarationType {
+            v := arg.(ast.VarDeclaration)
+            if need_default_value && v.Value == nil {
+                dbg := debug.NewSourceLocation(a.Source, v.Position.Line, v.Position.Column)
+                dbg.ThrowError("Optional function parameter '" + v.Name + "' is expected to have a value!", a.Dead, nil)
+                fndecl.Failed = true
+                a.Dead = true
+                break
+            }
+
+            if v.Value != nil {
+                need_default_value = true
+                a.checkVariable(&v)
+            }
+        }
+    }
+
+    for  _, stmt := range fndecl.Body.Body {
+        if stmt.GetKind() == ast.ReturnExprType {
+            ret := stmt.(ast.ReturnExpr)
+            resultType := a.checkExpression(&ret.Value)
+            if resultType != ast.StrType(fndecl.ReturnType) {
+                dbg := debug.NewSourceLocation(a.Source, ret.Position.Line, ret.Position.Column + uint64(len("return ")))
+                dbg.ThrowError(fmt.Sprintf("Function returns type '%s', got '%s'",
+                ast.StrType(fndecl.ReturnType), resultType), a.Dead, nil)
+                a.Dead = true
+            }
+        } else {
+            a.analyzeStatement(&stmt)
+        }
+    }
+
+    a.PopScope()
+}
+
+
+func (a *Analyzer) analyzeFnCall(fncall *ast.FunctionCall) string {
+    if a.Parser.Globals.HasFunction(fncall.Calle) {
+        fn, _ := a.Parser.Globals.Scope[fncall.Calle]
+
+        minArgs := 0
+        maxArgs := 0
+
+        for _, arg := range fn.Arguments {
+            if arg.GetKind() == ast.VarDeclarationType {
+                v := arg.(ast.VarDeclaration)
+                if v.Value == nil {
+                    minArgs++
+                }
+                maxArgs++
+            }
+        }
+
+        if len(fncall.Args) < minArgs {
+            dbg := debug.NewSourceLocation(a.Source, fncall.Position.Line, fncall.Position.Column)
+            dbg.ThrowError(fmt.Sprintf("Function '%s' expects %d arguments, got %d!",
+                           fncall.Calle, minArgs, len(fncall.Args)), a.Dead, nil)
+            a.Dead = true
+        }
+
+        if len(fncall.Args) > minArgs {
+            minArgs += len(fncall.Args)
+        }
+
+        for i := 0; i < minArgs; i++ {
+            if i >= len(fn.Arguments) {
+                continue
+            }
+
+            callarg := fncall.Args[i]
+            resultType := a.checkExpression(&callarg)
+
+            ar := fn.Arguments[i]
+            if ar.GetKind() == ast.VariadicArgType {
+                continue
+            }
+
+            arg := ar.(ast.VarDeclaration)
+
+            if resultType != ast.StrType(arg.Type) {
+                dbg := debug.NewSourceLocation(a.Source, arg.Position.Line, arg.Position.Column)
+                dbg.ThrowError(fmt.Sprintf("%d. argument of the function '%s' expected type '%s' but got '%s' instead!",
+                i + 1, fncall.Calle, ast.StrType(arg.Type), resultType), a.Dead, nil)
+                a.Dead = true
+            }
+        }
+
+        if minArgs < maxArgs {
+            for i := minArgs; i < maxArgs; i++ {
+                v := fn.Arguments[i].(ast.VarDeclaration)
+                fncall.Args = append(fncall.Args, v.Value)
+            }
+
+        }
+
+        return ast.StrType(fn.ReturnType)
+    } else {
+        dbg := debug.NewSourceLocation(a.Source, fncall.Position.Line, fncall.Position.Column)
+        dbg.ThrowError("Unknown function '" + fncall.Calle + "'!", a.Dead, nil)
+        a.Dead = true
+    }
+
+    return ""
+}
+
+func (a *Analyzer) analyzeStatement(stmt *ast.Statement) {
+    switch (*stmt).GetKind() {
+    case ast.VarDeclarationType:
+        v := (*stmt).(ast.VarDeclaration)
+        a.checkVariable(&v)
+    case ast.FunctionDeclType:
+        fn := (*stmt).(ast.FunctionDecl)
+        a.analyzeFn(&fn)
+    case ast.FunctionCallType:
+        fn := (*stmt).(ast.FunctionCall)
+        a.analyzeFnCall(&fn)
+    }
+}
+
 func (a *Analyzer) Analyze() {
     a.AppendScope(&a.Program.Body)
     for _, stmt := range a.Program.Body.Body {
-        switch stmt.GetKind() {
-        case ast.VarDeclarationType:
-            v := stmt.(ast.VarDeclaration)
-            a.checkVariable(&v)
-        case ast.FunctionDeclType:
-            _ = stmt.(ast.FunctionDecl)
-            
-        }
+        a.analyzeStatement(&stmt)
     }
 }

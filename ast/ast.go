@@ -234,7 +234,7 @@ func (f FunctionDecl) GetKind() NodeType {
 
 type FunctionCall struct {
     Position tokens.Position
-    Calle Expression
+    Calle string
     Args []Expression
 }
 

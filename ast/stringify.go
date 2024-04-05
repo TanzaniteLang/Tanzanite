@@ -105,7 +105,10 @@ func (f *FunctionCall) StringifyArgs() string {
 }
 
 func (f *FunctionCall) Stringify() string {
+    return ""
+    /*
     return fmt.Sprintf("%s(%s)", strExpr(f.Calle), f.StringifyArgs())
+    */
 }
 
 func (i *IfStatement) Stringify() string {

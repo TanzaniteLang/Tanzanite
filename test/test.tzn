@@ -1,22 +1,18 @@
-fun printf(format: char**, ...): int
+fun printf(format: char*, ...): int
 end
 
 fun getchar(): int
 end
 
-fun add(a: int, b: int): int
+fun add(a: int = 4, b: int = 3): int
   return a + b
 end
 
-a: int = 7
-
-b: int = xd + 4
-
 fun main(): int
+  printf "%p\n", nil + (void*) 10
+
   printf "2 + 2 = %d\n", add(2, 2)
   printf "add() = %d\nadd(7) = %d\n", add(), add(7)
-
-  printf "%p\n", nil + 10
 
   heh: void* = nil
   printf "%p %p\n", &heh, heh + 7
