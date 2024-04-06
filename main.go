@@ -37,6 +37,7 @@ func main() {
     dbg, ok := os.LookupEnv("TZN_DBG")
     if ok && dbg == "1" {
         dump.Println(out)
+        dump.Println(par.Globals)
         os.Exit(0)
     }
 

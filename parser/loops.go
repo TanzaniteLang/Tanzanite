@@ -7,7 +7,7 @@ import (
 )
 
 func (p *Parser) parseBegin() ast.Statement {
-    start_pos := p.consume().Position
+    p.consume()
 
     stat := ast.WhileStatement{
         Condition: nil,
@@ -17,7 +17,6 @@ func (p *Parser) parseBegin() ast.Statement {
             Scope: map[string]*ast.VarDeclaration{},
             Body: []ast.Statement{},
         },
-        Position: start_pos,
     }
 
     current := p.current()
@@ -34,6 +33,7 @@ func (p *Parser) parseBegin() ast.Statement {
     index := p.pos
     start_line := c.Position.Line
 
+    stat.Position = p.current().Position
     expr := p.parseExpression()
 
     if expr == nil || start_line != p.tokens[index].Position.Line {

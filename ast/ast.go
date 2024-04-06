@@ -226,6 +226,9 @@ type FunctionDecl struct {
     Variadic bool
     Failed bool
     Body Body
+
+    TypeBound bool
+    Static bool 
 }
 
 func (f FunctionDecl) GetKind() NodeType {

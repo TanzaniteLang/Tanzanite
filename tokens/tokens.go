@@ -108,6 +108,7 @@ const (
 	Fun
 	Return
 	Sizeof
+    Self
 )
 
 var tokens = []string{
@@ -189,6 +190,7 @@ var tokens = []string{
 	End:                  "end",
     Eof:                  "EOF",
 	Then:                 "then",
+    Self:                 "self",
 }
 
 func (t Token) String() string {

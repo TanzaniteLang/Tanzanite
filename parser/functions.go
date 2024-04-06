@@ -83,8 +83,33 @@ func (p *Parser) parseFnCall(fndecl *ast.FunctionDecl) ast.FunctionCall {
     }
 }
 
-func (p *Parser) parseFunction(isFun bool) ast.Statement {
-    start_pos := p.consume().Position
+func (p *Parser) parseDefFunction() (string, string, ast.Statement) {
+    start := p.consume().Position
+
+    // consume type
+    t := p.parseType()
+
+    if p.current().Info != tokens.Dot {
+        panic("forgot .")
+    }
+
+    p.consume()
+
+    fn := p.parseFunFunction(&start, true) // XXX: for now
+
+    return fn.(ast.FunctionDecl).Name, ast.StrType(t), fn
+}
+
+func (p *Parser) parseFunFunction(start *tokens.Position, bound bool) ast.Statement {
+    var start_pos tokens.Position
+    if start == nil {
+        start_pos = p.consume().Position
+    } else {
+        start_pos = *start
+    }
+
+    static := true
+
     name := p.consume()
     if p.current().Info != tokens.LBracket {
         c := p.current()
@@ -106,9 +131,18 @@ func (p *Parser) parseFunction(isFun bool) ast.Statement {
 
     variadic := false
 
+    iter := 0
+
     current := p.current()
     for current.Info != tokens.RBracket {
-        if current.Info == tokens.Identifier {
+        if iter == 0 && current.Info == tokens.Self {
+            p.consume()
+
+            if p.current().Info == tokens.Asterisk {
+                static = false
+                p.consume()
+            }
+        } else if current.Info == tokens.Identifier {
             args = append(args, p.parseVarDeclaration())
         } else if current.Info == tokens.Dot {
             p.consume()
@@ -151,6 +185,7 @@ func (p *Parser) parseFunction(isFun bool) ast.Statement {
         p.consume()
 
         current = p.current()
+        iter++
     }
     p.consume()
 
@@ -179,13 +214,16 @@ func (p *Parser) parseFunction(isFun bool) ast.Statement {
         Arguments: args,
         Failed: fail,
         ReturnType: returnType,
-        Immutable: isFun,
+        Immutable: start == nil,
         Body: ast.Body{
             Scope: map[string]*ast.VarDeclaration{},
             Body: []ast.Statement{},
         },
         Variadic: variadic,
         Position: start_pos,
+
+        TypeBound: bound,
+        Static: static,
     }
 
     p.AppendScope(&fn.Body)

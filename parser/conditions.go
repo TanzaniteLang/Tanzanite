@@ -34,6 +34,7 @@ func (p *Parser) parseElsif() ast.Statement {
     c := p.consume()
     index := p.pos
     start_line := c.Position.Line
+    expr_pos := p.current().Position
 
     expr := p.parseExpression()
 
@@ -54,7 +55,7 @@ func (p *Parser) parseElsif() ast.Statement {
             Scope: map[string]*ast.VarDeclaration{},
             Body: []ast.Statement{},
         },
-        Position: c.Position,
+        Position: expr_pos,
     }
 
     p.AppendScope(&stat.Body)
@@ -80,7 +81,8 @@ func (p *Parser) parseIf(unless bool) ast.Statement {
     c := p.consume()
     index := p.pos
     start_line := c.Position.Line
-
+    expr_pos := p.current().Position
+    
     expr := p.parseExpression()
 
     if expr == nil || start_line != p.tokens[index].Position.Line {
@@ -101,7 +103,7 @@ func (p *Parser) parseIf(unless bool) ast.Statement {
             Scope: map[string]*ast.VarDeclaration{},
             Body: []ast.Statement{},
         },
-        Position: c.Position,
+        Position: expr_pos,
     }
 
     p.AppendScope(&stat.Body)

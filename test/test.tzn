@@ -8,30 +8,10 @@ fun add(a: int = 4, b: int = 3): int
   return a + b
 end
 
+def int.to_s(self): char*
+  return "xd"
+end
+
 fun main(): int
-  printf "%p\n", nil + (void*) 10
-
-  printf "2 + 2 = %d\n", add(2, 2)
-  printf "add() = %d\nadd(7) = %d\n", add(), add(7)
-
-  heh: void* = nil
-  printf "%p %p\n", &heh, heh + 7
-
-  c: char
-
-  begin
-    printf "Write a letter\nType Q to quit\n"
-
-    c = getchar
-    getchar # Flush \n
-
-    unless c == 'Q' then
-      printf "\nYou typed: %c\n\n", c
-      next
-    end
-
-    break
-  end while true
-
-  return 0
+  (4).to_s "hm", 3, 4
 end

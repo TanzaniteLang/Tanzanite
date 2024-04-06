@@ -2,9 +2,11 @@ package analyzer
 
 import (
     "fmt"
+    "strings"
     "codeberg.org/Tanzanite/Tanzanite/parser"
     "codeberg.org/Tanzanite/Tanzanite/debug"
     "codeberg.org/Tanzanite/Tanzanite/ast"
+    "github.com/gookit/goutil/dump"
 )
 
 type Analyzer struct {
@@ -13,6 +15,8 @@ type Analyzer struct {
     Dead bool
     Source string
     Scopes []*ast.Body
+
+    unaryStatment bool
 }
 
 func (a *Analyzer) findVariable(name string) *ast.VarDeclaration {
@@ -59,6 +63,32 @@ func (a *Analyzer) checkExpression(expr *ast.Expression) string {
         return "char*"
     case ast.BoolType:
         return "bool"
+    case ast.UnaryExprType:
+        u := (*expr).(ast.UnaryExpr)
+        resultType := a.checkExpression(&u.Operand)
+
+        switch u.Operator {
+        case "*":
+            if strings.HasSuffix(resultType, "*") {
+                return resultType[:len(resultType) - 1]
+            } else {
+                dbg := debug.NewSourceLocation(a.Source, u.Position.Line, u.Position.Column)
+                dbg.ThrowError(fmt.Sprintf("Cannot dereference type '%s'!", resultType), a.Dead, nil)
+                a.Dead = true
+            }
+        case "&":
+            return resultType + "*"
+        case "!":
+            if resultType != "bool" {
+                dbg := debug.NewSourceLocation(a.Source, u.Position.Line, u.Position.Column)
+                dbg.ThrowError(fmt.Sprintf("Expected type 'bool', got '%s'!", resultType), a.Dead, nil)
+                a.Dead = true
+                return ""
+            }
+            return "bool"
+        }
+
+        return resultType
     case ast.IdentifierType:
         i := (*expr).(ast.Identifier)
 
@@ -86,6 +116,25 @@ func (a *Analyzer) checkExpression(expr *ast.Expression) string {
             a.Dead = true
         }
 
+        switch b.Operator {
+        case "==":
+            return "bool"
+        case "!=":
+            return "bool"
+        case "<":
+            return "bool"
+        case "<=":
+            return "bool"
+        case ">":
+            return "bool"
+        case ">=":
+            return "bool"
+        case "||":
+            return "bool"
+        case "&&":
+            return "bool"
+        }
+
         return left_expr 
     case ast.FunctionCallType:
         f := (*expr).(ast.FunctionCall)
@@ -94,6 +143,13 @@ func (a *Analyzer) checkExpression(expr *ast.Expression) string {
         t := (*expr).(ast.TypeCast)
 
         return ast.StrType(t.Target.Type)
+    case ast.BracketExprType:
+        b := (*expr).(ast.BracketExpr)
+
+        return a.checkExpression(&b.Expr)
+    case ast.AssignExprType:
+        a2 := (*expr).(ast.AssignExpr)
+        return a.analyzeAssignment(&a2)
     }
 
     return ""
@@ -221,6 +277,26 @@ func (a *Analyzer) analyzeStatement(stmt *ast.Statement) {
     case ast.FunctionCallType:
         fn := (*stmt).(ast.FunctionCall)
         a.analyzeFnCall(&fn)
+    case ast.WhileStatementType:
+        w := (*stmt).(ast.WhileStatement)
+        a.analyzeWhile(&w)
+    case ast.LoopControlStatementType:
+        return
+    case ast.IfStatementType:
+        i := (*stmt).(ast.IfStatement)
+        a.analyzeIf(&i)
+    case ast.AssignExprType:
+        a2 := (*stmt).(ast.AssignExpr)
+        a.analyzeAssignment(&a2)
+    case ast.UnaryExprType:
+        // XXX: This ain't good, but ideal for now!
+        u := (*stmt).(ast.UnaryExpr)
+        e := (*stmt).(ast.Expression)
+        a.unaryStatment = u.Operator == "*"
+        a.checkExpression(&e)
+        a.unaryStatment = false
+    default:
+        dump.Println(stmt)
     }
 }
 

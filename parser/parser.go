@@ -8,7 +8,38 @@ import (
 )
 
 type GlobalScope struct {
-    Scope map[string]*ast.FunctionDecl
+    Aliases map[string]string // Type Aliases
+    Scope map[string]*ast.FunctionDecl // Global C functions
+    TypeBoundFns map[string]map[string]*ast.FunctionDecl // Type Bound fns
+    // first key is type, second key is the name
+    // the same function can be found in the scope field, but mangled
+    // The analyzer will mangle it
+}
+
+func (g *GlobalScope) BoundTypeFunction(name string, t string, fn *ast.FunctionDecl) {
+    mangled := MangleFunction(t + "." + name)
+    g.RegisterFunction(mangled, fn)
+
+    _, ok := g.TypeBoundFns[t]
+
+    if ok {
+        g.TypeBoundFns[t][name] = fn
+    } else {
+        g.TypeBoundFns[t] = map[string]*ast.FunctionDecl{}
+        g.TypeBoundFns[t][name] = fn
+    }
+}
+
+func (g *GlobalScope) HasBoundFunction(name string, t string) bool {
+    _, ok := g.TypeBoundFns[t]
+
+    if ok {
+        _, ok2 := g.TypeBoundFns[t][name]
+
+        return ok2
+    }
+
+    return false
 }
 
 func (g *GlobalScope) RegisterFunction(name string, fn *ast.FunctionDecl) {
@@ -48,6 +79,7 @@ func NewParser(file string) *Parser {
         tokens: []Token{},
         Globals: GlobalScope{
             Scope: map[string]*ast.FunctionDecl{},
+            TypeBoundFns: map[string]map[string]*ast.FunctionDecl{},
         },
         source: file,
         scopes: []*ast.Body{},
@@ -145,9 +177,12 @@ func (p *Parser) ProduceAST(code string) ast.Program {
 func (p *Parser) parseStatement() ast.Statement {
     switch p.current().Info {
     case tokens.Def:
-        panic("Def functions are not yet implemented!")
+        name, t, fn := p.parseDefFunction()
+        f := fn.(ast.FunctionDecl)
+        p.Globals.BoundTypeFunction(name, t, &f)
+        return fn
     case tokens.Fun:
-        fn := p.parseFunction(true).(ast.FunctionDecl)
+        fn := p.parseFunFunction(nil, false).(ast.FunctionDecl)
         p.Globals.RegisterFunction(fn.Name, &fn)
 
         return fn
