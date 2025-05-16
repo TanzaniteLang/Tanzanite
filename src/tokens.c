@@ -1,0 +1,42 @@
+#include <tokens.h>
+
+const char *tokens[] = {
+    "EOF",
+    "???",
+
+    "identifier",
+    "string",
+    "char",
+    "int",
+    "float",
+    "boolean",
+
+    "=",
+    "if",
+    "unless",
+    "else",
+    "for",
+    "while",
+    "until",
+    "break",
+    "next",
+    "switch",
+    "case",
+    "begin",
+
+    "?",
+    ".",
+    ",",
+    ":",
+    ";",
+    "(",
+    ")",
+    "[",
+    "]",
+    "{",
+    "}",
+
+    "auto",
+    "fn",
+    "return"
+};
