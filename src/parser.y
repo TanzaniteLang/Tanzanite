@@ -22,7 +22,7 @@ static struct ast *root;
 %token <num> INT_TOK
 %token <dec> FLOAT_TOK
 %token <str> IDENTIFIER_TOK
-%type <node> program statements statement expr ident vars type pointer_type fns fn_args body
+%type <node> program statements statement expr ident vars type pointer_type fns fn_args body fn_call call_args
 
 %token DEF_TOK END_TOK
 
@@ -44,11 +44,22 @@ statements:
 statement:
     vars ';'                        { $$ = $1; }
     | fns                           { $$ = $1; }
+    | fn_call ';'                   { $$ = $1; }
     ;
 
 fns:
     DEF_TOK ident '(' fn_args ')' body END_TOK            { $$ = fn_def_node(type_node(NULL), $2, $4, $6); }
     | DEF_TOK ident '(' fn_args ')' ':' type body END_TOK   { $$ = fn_def_node(type_node($7), $2, $4, $8); }
+    ;
+
+fn_call:
+    ident call_args                 { $$ = fn_call_node($1, $2); }
+    | ident '(' call_args ')'       { $$ = fn_call_node($1, $3); }
+    ;
+
+call_args:
+    expr                            { $$ = fn_arg_list_node(NULL, $1); }
+    | expr ',' call_args            { $$ = fn_arg_list_node($3, $1);   }
     ;
 
 body:
@@ -87,6 +98,7 @@ expr:
     | expr MINUS_TOK expr           { $$ = operation_node('-', $1, $3); }
     | expr STAR_TOK expr            { $$ = operation_node('*', $1, $3); }
     | expr SLASH_TOK expr           { $$ = operation_node('/', $1, $3); }
+    | ident '(' call_args ')'       { $$ = fn_call_node($1, $3);        }
     | '(' expr ')'                  { $$ = bracket_node($2);            }
     ;
 %%

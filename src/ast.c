@@ -123,6 +123,16 @@ struct ast *fn_def_node(struct ast *type, struct ast *ident, struct ast *args, s
     return node;
 }
 
+struct ast *fn_call_node(struct ast *ident, struct ast *first_arg)
+{
+    struct ast *node = calloc(1, sizeof(*node));
+    node->type = FN_CALL;
+    node->u.function_call.ident = ident;
+    node->u.function_call.first_arg = first_arg;
+
+    return node;
+}
+
 struct ast *fn_arg_list_node(struct ast *list, struct ast *arg)
 {
     struct ast *node = calloc(1, sizeof(*node));
@@ -304,6 +314,20 @@ static void _describe(struct ast *node, int spacing)
         spacing -= 2;
         offset_text(spacing);
         printf("}\n");
+        spacing -= 2;
+        offset_text(spacing);
+        printf("}\n");
+        break;
+    case FN_CALL:
+        offset_text(spacing);
+        printf("\e[34mFn Call\e[0m {\n");
+        _describe(node->u.function_call.ident, spacing + 2);
+        spacing += 2;
+        offset_text(spacing);
+        printf("\e[32mArguments\e[0m (\n");
+        _describe(node->u.function_call.first_arg, spacing + 2);
+        offset_text(spacing);
+        printf(")\n");
         spacing -= 2;
         offset_text(spacing);
         printf("}\n");

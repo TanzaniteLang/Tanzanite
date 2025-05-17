@@ -24,6 +24,8 @@ enum node_type {
     FN_DECL,
     FN_DEF,
     FN_ARG,
+
+    FN_CALL,
 };
 
 struct ast {
@@ -76,6 +78,10 @@ struct ast {
             struct ast *current;
             struct ast *next;
         } function_argument;
+        struct {
+            struct ast *ident;
+            struct ast *first_arg;
+        } function_call;
     } u;
 };
 
@@ -93,6 +99,7 @@ struct ast *var_decl_node(struct ast *type, struct ast *ident);
 struct ast *var_def_node(struct ast *type, struct ast *ident, struct ast *val);
 struct ast *fn_decl_node(struct ast *type, struct ast *ident, struct ast *args);
 struct ast *fn_def_node(struct ast *type, struct ast *ident, struct ast *args, struct ast *body);
+struct ast *fn_call_node(struct ast *ident, struct ast *first_arg);
 struct ast *fn_arg_list_node(struct ast *list, struct ast *arg);
 struct ast *type_node(struct ast *type);
 struct ast *pointer_node(struct ast *list, struct ast *type);
