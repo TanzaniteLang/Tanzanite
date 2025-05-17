@@ -11,7 +11,7 @@ const char *tokens[] = {
     "float",
     "boolean",
 
-    "=",
+    "assign",
     "if",
     "unless",
     "else",

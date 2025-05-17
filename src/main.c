@@ -1,9 +1,10 @@
-#include <tokens.h>
-#include <stdio.h>
+#include <ast.h>
+
+struct ast *parse();
 
 int main()
 {
-    printf("%s\n", tokens[EOF_TOK]);
-    printf("%s\n", tokens[AUTO_TOK]);
+    struct ast *parsed = parse();
+    describe(parsed);
     return 0;
 }
