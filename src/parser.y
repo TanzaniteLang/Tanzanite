@@ -22,9 +22,10 @@ static struct ast *root;
 %token <num> INT_TOK
 %token <dec> FLOAT_TOK
 %token <str> IDENTIFIER_TOK
-%type <node> program statements statement expr ident vars type pointer_type fns fn_args body fn_call call_args
+%type <node> program statements statement expr ident vars type pointer_type fns fn_args body call_args
+%type <node> if_cond elsif_branch else_branch
 
-%token DEF_TOK END_TOK
+%token DEF_TOK END_TOK IF_TOK THEN_TOK ELSIF_TOK ELSE_TOK
 
 %left PLUS_TOK MINUS_TOK
 %left STAR_TOK SLASH_TOK
@@ -44,7 +45,23 @@ statements:
 statement:
     vars ';'                        { $$ = $1; }
     | fns                           { $$ = $1; }
-    | fn_call ';'                   { $$ = $1; }
+    | if_cond                       { $$ = $1; }
+    ;
+
+if_cond:
+    IF_TOK expr THEN_TOK body END_TOK           { $$ = if_node($2, $4, NULL); }
+    | IF_TOK expr THEN_TOK body elsif_branch    { $$ = if_node($2, $4, $5);   }    
+    | IF_TOK expr THEN_TOK body else_branch     { $$ = if_node($2, $4, $5);   }
+    ;
+
+elsif_branch:
+    ELSIF_TOK expr THEN_TOK body END_TOK        { $$ = elsif_node($2, $4, NULL); }
+    | ELSIF_TOK expr THEN_TOK body elsif_branch { $$ = elsif_node($2, $4, $5); }
+    | ELSIF_TOK expr THEN_TOK body else_branch  { $$ = elsif_node($2, $4, $5); }
+    ;
+
+else_branch:
+    ELSE_TOK body END_TOK           { $$ = else_node($2); }
     ;
 
 fns:
@@ -52,14 +69,10 @@ fns:
     | DEF_TOK ident '(' fn_args ')' ':' type body END_TOK   { $$ = fn_def_node(type_node($7), $2, $4, $8); }
     ;
 
-fn_call:
-    ident call_args                 { $$ = fn_call_node($1, $2); }
-    | ident '(' call_args ')'       { $$ = fn_call_node($1, $3); }
-    ;
-
 call_args:
     expr                            { $$ = fn_arg_list_node(NULL, $1); }
     | expr ',' call_args            { $$ = fn_arg_list_node($3, $1);   }
+    |                               { $$ = NULL; }
     ;
 
 body:
@@ -99,6 +112,7 @@ expr:
     | expr STAR_TOK expr            { $$ = operation_node('*', $1, $3); }
     | expr SLASH_TOK expr           { $$ = operation_node('/', $1, $3); }
     | ident '(' call_args ')'       { $$ = fn_call_node($1, $3);        }
+    | '(' expr ')' '(' call_args ')'{ $$ = fn_call_node($2, $5);        }
     | '(' expr ')'                  { $$ = bracket_node($2);            }
     ;
 %%

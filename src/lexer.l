@@ -5,7 +5,10 @@
 %}
 
 %%
-
+"if"                return IF_TOK;
+"elsif"             return ELSIF_TOK;
+"else"              return ELSE_TOK;
+"then"              return THEN_TOK;
 "def"               return DEF_TOK;
 "end"               return END_TOK;
 [A-z]+[A-z0-9]*     { yylval.str = str_init(yytext, yyleng); return IDENTIFIER_TOK; }

@@ -162,6 +162,37 @@ struct ast *pointer_node(struct ast *list, struct ast *type)
     return node;
 }
 
+struct ast *if_node(struct ast *expr, struct ast *body, struct ast *next)
+{
+    struct ast *node = calloc(1, sizeof(*node));
+    node->type = IF_COND;
+    node->u.if_statement.expr = expr;
+    node->u.if_statement.body = body;
+    node->u.if_statement.next = next;
+
+    return node;
+}
+
+struct ast *elsif_node(struct ast *expr, struct ast *body, struct ast *next)
+{
+    struct ast *node = calloc(1, sizeof(*node));
+    node->type = ELSIF_COND;
+    node->u.elsif_statement.expr = expr;
+    node->u.elsif_statement.body = body;
+    node->u.elsif_statement.next = next;
+
+    return node;
+}
+
+struct ast *else_node(struct ast *body)
+{
+    struct ast *node = calloc(1, sizeof(*node));
+    node->type = ELSE_COND;
+    node->u.else_statement = body;
+
+    return node;
+}
+
 
 
 static void offset_text(int count)
@@ -331,6 +362,25 @@ static void _describe(struct ast *node, int spacing)
         spacing -= 2;
         offset_text(spacing);
         printf("}\n");
+        break;
+    case IF_COND:
+        offset_text(spacing);
+        printf("\e[33mIf\e[0m {\n");
+        _describe(node->u.if_statement.expr, spacing + 2);
+        _describe(node->u.if_statement.body, spacing + 2);
+        _describe(node->u.if_statement.next, spacing);
+        break;
+    case ELSIF_COND:
+        offset_text(spacing);
+        printf("\e[33mElsif\e[0m {\n");
+        _describe(node->u.if_statement.expr, spacing + 2);
+        _describe(node->u.if_statement.body, spacing + 2);
+        _describe(node->u.if_statement.next, spacing);
+        break;
+    case ELSE_COND:
+        offset_text(spacing);
+        printf("\e[33mElse\e[0m {\n");
+        _describe(node->u.else_statement, spacing + 2);
         break;
     }
 }

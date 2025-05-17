@@ -24,8 +24,11 @@ enum node_type {
     FN_DECL,
     FN_DEF,
     FN_ARG,
-
     FN_CALL,
+
+    IF_COND,
+    ELSIF_COND,
+    ELSE_COND,
 };
 
 struct ast {
@@ -82,6 +85,17 @@ struct ast {
             struct ast *ident;
             struct ast *first_arg;
         } function_call;
+        struct {
+            struct ast *expr;
+            struct ast *body;
+            struct ast *next;
+        } if_statement;
+        struct {
+            struct ast *expr;
+            struct ast *body;
+            struct ast *next;
+        } elsif_statement;
+        struct ast *else_statement;
     } u;
 };
 
@@ -103,6 +117,9 @@ struct ast *fn_call_node(struct ast *ident, struct ast *first_arg);
 struct ast *fn_arg_list_node(struct ast *list, struct ast *arg);
 struct ast *type_node(struct ast *type);
 struct ast *pointer_node(struct ast *list, struct ast *type);
+struct ast *if_node(struct ast *expr, struct ast *body, struct ast *next);
+struct ast *elsif_node(struct ast *expr, struct ast *body, struct ast *next);
+struct ast *else_node(struct ast *body);
 
 void describe(struct ast *node);
 
