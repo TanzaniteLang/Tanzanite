@@ -22,7 +22,9 @@ static struct ast *root;
 %token <num> INT_TOK
 %token <dec> FLOAT_TOK
 %token <str> IDENTIFIER_TOK
-%type <node> program statements statement expr expr0 vars vars0 type pointer_type ident ident_chain fns fn_arg_list
+%type <node> program statements statement expr ident vars type pointer_type fns fn_args body
+
+%token DEF_TOK END_TOK
 
 %left PLUS_TOK MINUS_TOK
 %left STAR_TOK SLASH_TOK
@@ -31,44 +33,38 @@ static struct ast *root;
 
 program:
     statements                      { root = program_node($1); }
+    ;
 
 statements:
-    statement ';' statements        { $$ = statement_node($3, $1); }
-    | expr0 ';' statements          { $$ = statement_node($3, $1); }
+    statement statements            { $$ = statement_node($2, $1); }
+    | expr ';' statements           { $$ = statement_node($3, $1); }
     |                               { $$ = NULL; }
     ;
 
-ident:
-    IDENTIFIER_TOK                  { $$ = identifier_node($1); }
-
-ident_chain:
-    ident                           { $$ = $1;                            }
-    | ident ',' ident_chain         { $$ = identifier_chain_node($3, $1); }
-    ;
-
 statement:
-    vars                            { $$ = $1; }
+    vars ';'                        { $$ = $1; }
     | fns                           { $$ = $1; }
     ;
 
 fns:
-    type ident '(' fn_arg_list ')'  { $$ = fn_decl_node($1, $2, $4); }
+    DEF_TOK ident '(' fn_args ')' body END_TOK            { $$ = fn_def_node(type_node(NULL), $2, $4, $6); }
+    | DEF_TOK ident '(' fn_args ')' ':' type body END_TOK   { $$ = fn_def_node(type_node($7), $2, $4, $8); }
     ;
 
-fn_arg_list:
-    vars0                           { $$ = fn_arg_list_node(NULL, $1); }
-    | vars0 ',' fn_arg_list         { $$ = fn_arg_list_node($3, $1);   }
+body:
+    statements                      { $$ = $1; }
+    ;
+
+fn_args:
+    vars                            { $$ = fn_arg_list_node(NULL, $1); }
+    | vars ',' fn_args              { $$ = fn_arg_list_node($3, $1);   }
     |                               { $$ = NULL;                       }
     ;
 
-vars0:
-    type ident                      { $$ = var_decl_node(type_node($1), $2);    }
-    | type ident '=' expr           { $$ = var_def_node(type_node($1), $2, $4); }
-    ;
-
 vars:
-    type ident_chain                { $$ = var_decl_node(type_node($1), $2);    }
-    | type ident '=' expr           { $$ = var_def_node(type_node($1), $2, $4); }
+    ident '=' expr                  { $$ = var_def_node(NULL, $1, $3); }
+    | ident ':' type                { $$ = var_decl_node(type_node($3), $1); }
+    | ident ':' type '=' expr       { $$ = var_def_node(type_node($3), $1, $5); }
     ;
 
 type:
@@ -80,19 +76,18 @@ pointer_type:
     type STAR_TOK                   { $$ = pointer_node($1, NULL); }
     ;
 
-expr0:
+ident:
+    IDENTIFIER_TOK                  { $$ = identifier_node($1); }
+
+expr:
     INT_TOK                         { $$ = int_node($1);                }
     | FLOAT_TOK                     { $$ = float_node($1);              }
     | ident                         { $$ = $1;                          }
-    | expr0 PLUS_TOK expr0          { $$ = operation_node('+', $1, $3); }
-    | expr0 MINUS_TOK expr0         { $$ = operation_node('-', $1, $3); }
-    | expr0 SLASH_TOK expr0         { $$ = operation_node('/', $1, $3); }
-    | '(' expr ')'                  { $$ = bracket_node($2);            }
-    ;
-
-expr:
-    expr0                           { $$ = $1;                          }
+    | expr PLUS_TOK expr            { $$ = operation_node('+', $1, $3); }
+    | expr MINUS_TOK expr           { $$ = operation_node('-', $1, $3); }
     | expr STAR_TOK expr            { $$ = operation_node('*', $1, $3); }
+    | expr SLASH_TOK expr           { $$ = operation_node('/', $1, $3); }
+    | '(' expr ')'                  { $$ = bracket_node($2);            }
     ;
 %%
 

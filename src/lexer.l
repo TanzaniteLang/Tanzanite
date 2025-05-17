@@ -6,6 +6,8 @@
 
 %%
 
+"def"               return DEF_TOK;
+"end"               return END_TOK;
 [A-z]+[A-z0-9]*     { yylval.str = str_init(yytext, yyleng); return IDENTIFIER_TOK; }
 [0-9]+              { yylval.num = atol(yytext); return INT_TOK; }
 [0-9]+\.[0-9]+      { yylval.dec = strtod(yytext, NULL); }
@@ -13,6 +15,9 @@
 ","                 return ',';
 ";"                 return ';';
 "="                 return '=';
+":"                 return ':';
+"{"                 return '{';
+"}"                 return '}';
 "("                 return '(';
 ")"                 return ')';
 "+"                 return PLUS_TOK;

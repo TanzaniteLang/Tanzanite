@@ -111,6 +111,17 @@ struct ast *fn_decl_node(struct ast *type, struct ast *ident, struct ast *args)
 
     return node;
 }
+struct ast *fn_def_node(struct ast *type, struct ast *ident, struct ast *args, struct ast *body)
+{
+    struct ast *node = calloc(1, sizeof(*node));
+    node->type = FN_DEF;
+    node->u.function_definition.return_type = type;
+    node->u.function_definition.ident = ident;
+    node->u.function_definition.arg_list = args;
+    node->u.function_definition.body = body;
+
+    return node;
+}
 
 struct ast *fn_arg_list_node(struct ast *list, struct ast *arg)
 {
@@ -151,8 +162,11 @@ static void offset_text(int count)
 
 static void _describe(struct ast *node, int spacing)
 {
-    if (node == NULL)
+    if (node == NULL) {
+        offset_text(spacing);
+        printf("nil\n");
         return;
+    }
 
     switch (node->type) {
     case PROGRAM:
@@ -271,6 +285,28 @@ static void _describe(struct ast *node, int spacing)
         else
             printf("}\n");
         _describe(node->u.function_argument.next, spacing);
+        break;
+    case FN_DEF:
+        offset_text(spacing);
+        printf("\e[34mFn Def\e[0m {\n");
+        _describe(node->u.function_definition.return_type, spacing + 2);
+        _describe(node->u.variable_definition.identifier, spacing + 2);
+        spacing += 2;
+        offset_text(spacing);
+        printf("\e[32mArguments\e[0m (\n");
+        _describe(node->u.function_definition.arg_list, spacing + 2);
+        offset_text(spacing);
+        printf(")\n");
+        offset_text(spacing);
+        printf("Body\e[0m {\n");
+        spacing += 2;
+        _describe(node->u.function_definition.body, spacing);
+        spacing -= 2;
+        offset_text(spacing);
+        printf("}\n");
+        spacing -= 2;
+        offset_text(spacing);
+        printf("}\n");
         break;
     }
 }
