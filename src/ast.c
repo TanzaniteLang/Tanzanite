@@ -50,6 +50,15 @@ struct ast *identifier_node(struct str ident)
     return node;
 }
 
+struct ast *string_node(struct str string)
+{
+    struct ast *node = calloc(1, sizeof(*node));
+    node->type = STRING;
+    node->u.string = string;
+
+    return node;
+}
+
 struct ast *identifier_chain_node(struct ast *list, struct ast *ident)
 {
     struct ast *node = calloc(1, sizeof(*node));
@@ -193,6 +202,16 @@ struct ast *else_node(struct ast *body)
     return node;
 }
 
+struct ast *unary_node(char op, struct ast *val)
+{
+    struct ast *node = calloc(1, sizeof(*node));
+    node->type = UNARY;
+    node->u.unary.op = op;
+    node->u.unary.value = val;
+
+    return node;
+}
+
 
 
 static void offset_text(int count)
@@ -246,6 +265,10 @@ static void _describe(struct ast *node, int spacing)
     case IDENTIFIER:
         offset_text(spacing);
         printf("\e[36mIdent\e[0m: %s\n", node->u.identifier.str);
+        break;
+    case STRING:
+        offset_text(spacing);
+        printf("\e[36mStr\e[0m: %s\n", node->u.string.str);
         break;
     case OPERATION:
         offset_text(spacing);
@@ -381,6 +404,13 @@ static void _describe(struct ast *node, int spacing)
         offset_text(spacing);
         printf("\e[33mElse\e[0m {\n");
         _describe(node->u.else_statement, spacing + 2);
+        break;
+    case UNARY:
+        offset_text(spacing);
+        printf("\e[35mUnary\e[0m: %c\e[0m {\n", node->u.unary.op);
+        _describe(node->u.unary.value, spacing + 2);
+        offset_text(spacing);
+        printf("}\n");
         break;
     }
 }

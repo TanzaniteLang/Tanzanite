@@ -12,7 +12,9 @@ enum node_type {
     INT,
     FLOAT,
     IDENTIFIER,
+    STRING,
     IDENTIFIER_CHAIN,
+    UNARY,
 
     OPERATION,
 
@@ -43,10 +45,15 @@ struct ast {
         uint64_t number;
         double decimal;
         struct str identifier;
+        struct str string;
         struct {
             struct ast *current;
             struct ast *next;
         } identifier_chain;
+        struct {
+            char op;
+            struct ast *value;
+        } unary;
         struct {
             char op;
             struct ast *left;
@@ -106,6 +113,7 @@ struct ast *statement_node(struct ast *list, struct ast *statement);
 struct ast *int_node(uint64_t val);
 struct ast *float_node(double val);
 struct ast *identifier_node(struct str ident);
+struct ast *string_node(struct str string);
 struct ast *identifier_chain_node(struct ast *list, struct ast *ident);
 struct ast *operation_node(char op, struct ast *left, struct ast *right);
 struct ast *bracket_node(struct ast *expr);
@@ -120,6 +128,7 @@ struct ast *pointer_node(struct ast *list, struct ast *type);
 struct ast *if_node(struct ast *expr, struct ast *body, struct ast *next);
 struct ast *elsif_node(struct ast *expr, struct ast *body, struct ast *next);
 struct ast *else_node(struct ast *body);
+struct ast *unary_node(char op, struct ast *val);
 
 void describe(struct ast *node);
 

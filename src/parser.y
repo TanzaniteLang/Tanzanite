@@ -9,6 +9,8 @@
 int yylex(void);
 int yyerror(const char *s);
 static struct ast *root;
+
+// FIXME: .* as deref
 %}
 
 
@@ -21,17 +23,17 @@ static struct ast *root;
 
 %token <num> INT_TOK
 %token <dec> FLOAT_TOK
-%token <str> IDENTIFIER_TOK
-%type <node> program statements statement expr ident vars type pointer_type fns fn_args body call_args
+%token <str> IDENTIFIER_TOK STRING_TOK
+%type <node> program statements statement expr ident vars type pointer_type fns fn_args body call_args value unary
 %type <node> if_cond elsif_branch else_branch
 
 %token DEF_TOK END_TOK IF_TOK THEN_TOK ELSIF_TOK ELSE_TOK
 
 %left PLUS_TOK MINUS_TOK
 %left STAR_TOK SLASH_TOK
+%left AMP_TOK
 
 %%
-
 program:
     statements                      { root = program_node($1); }
     ;
@@ -103,10 +105,21 @@ pointer_type:
 ident:
     IDENTIFIER_TOK                  { $$ = identifier_node($1); }
 
+value:
+    INT_TOK                         { $$ = int_node($1);    }
+    | FLOAT_TOK                     { $$ = float_node($1);  }
+    | ident                         { $$ = $1;              }
+    ;
+
+unary:
+    value                           { $$ = $1; }
+    | STRING_TOK                    { $$ = string_node($1); }
+    | PLUS_TOK value                { $$ = unary_node('+', $2); }
+    | MINUS_TOK value               { $$ = unary_node('-', $2); }
+    | AMP_TOK value                 { $$ = unary_node('&', $2); }
+
 expr:
-    INT_TOK                         { $$ = int_node($1);                }
-    | FLOAT_TOK                     { $$ = float_node($1);              }
-    | ident                         { $$ = $1;                          }
+    unary                           { $$ = $1; }
     | expr PLUS_TOK expr            { $$ = operation_node('+', $1, $3); }
     | expr MINUS_TOK expr           { $$ = operation_node('-', $1, $3); }
     | expr STAR_TOK expr            { $$ = operation_node('*', $1, $3); }

@@ -12,6 +12,7 @@
 "def"               return DEF_TOK;
 "end"               return END_TOK;
 [A-z]+[A-z0-9]*     { yylval.str = str_init(yytext, yyleng); return IDENTIFIER_TOK; }
+\"(?:[^"\\]|\\.)*\" { yylval.str = str_init(yytext + 1, yyleng - 2); return STRING_TOK;     }
 [0-9]+              { yylval.num = atol(yytext); return INT_TOK; }
 [0-9]+\.[0-9]+      { yylval.dec = strtod(yytext, NULL); }
 [ \t\n]             ;
@@ -23,6 +24,7 @@
 "}"                 return '}';
 "("                 return '(';
 ")"                 return ')';
+"&"                 return AMP_TOK;
 "+"                 return PLUS_TOK;
 "-"                 return MINUS_TOK;
 "*"                 return STAR_TOK;
