@@ -32,10 +32,13 @@ enum node_type {
     FN_CALL,
 
     IF_COND,
+    IF_EXPR,
+    EXPR_IF,
     ELSIF_COND,
     ELSE_COND,
 
     FOR,
+    WHILE,
 };
 
 struct ast {
@@ -106,6 +109,15 @@ struct ast {
         } if_statement;
         struct {
             struct ast *expr;
+            struct ast *val;
+            struct ast *else_val;
+        } if_expression;
+        struct {
+            struct ast *expr;
+            struct ast *condition;
+        } expression_if;
+        struct {
+            struct ast *expr;
             struct ast *body;
             struct ast *next;
         } elsif_statement;
@@ -115,6 +127,11 @@ struct ast {
             struct ast *capture;
             struct ast *body;
         } for_statement;
+        struct {
+            struct ast *expr;
+            struct ast *body;
+            bool do_while;
+        } while_statement;
     } u;
 };
 
@@ -140,10 +157,13 @@ struct ast *fn_arg_list_node(struct ast *list, struct ast *arg);
 struct ast *type_node(struct ast *type);
 struct ast *pointer_node(struct ast *list, struct ast *type);
 struct ast *if_node(struct ast *expr, struct ast *body, struct ast *next);
+struct ast *expr_if_node(struct ast *expr, struct ast *condition);
+struct ast *if_expr_node(struct ast *expr, struct ast *value, struct ast *else_value);
 struct ast *elsif_node(struct ast *expr, struct ast *body, struct ast *next);
 struct ast *else_node(struct ast *body);
 struct ast *unary_node(char op, struct ast *val);
 struct ast *for_node(struct ast *expr, struct ast *capture, struct ast *body);
+struct ast *while_node(struct ast *expr, struct ast *body, bool do_while);
 
 void describe(struct ast *node);
 

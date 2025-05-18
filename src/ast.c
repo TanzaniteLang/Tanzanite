@@ -199,6 +199,26 @@ struct ast *if_node(struct ast *expr, struct ast *body, struct ast *next)
 
     return node;
 }
+struct ast *expr_if_node(struct ast *expr, struct ast *condition)
+{
+    struct ast *node = calloc(1, sizeof(*node));
+    node->type = EXPR_IF;
+    node->u.expression_if.expr = expr;
+    node->u.expression_if.condition = condition;
+
+    return node;
+}
+
+struct ast *if_expr_node(struct ast *expr, struct ast *value, struct ast *else_value)
+{
+    struct ast *node = calloc(1, sizeof(*node));
+    node->type = IF_EXPR;
+    node->u.if_expression.expr = expr;
+    node->u.if_expression.val = value;
+    node->u.if_expression.else_val = else_value;
+
+    return node;
+}
 
 struct ast *elsif_node(struct ast *expr, struct ast *body, struct ast *next)
 {
@@ -237,6 +257,17 @@ struct ast *for_node(struct ast *expr, struct ast *capture, struct ast *body)
     node->u.for_statement.expr = expr;
     node->u.for_statement.capture = capture;
     node->u.for_statement.body = body;
+
+    return node;
+}
+
+struct ast *while_node(struct ast *expr, struct ast *body, bool do_while)
+{
+    struct ast *node = calloc(1, sizeof(*node));
+    node->type = WHILE;
+    node->u.while_statement.expr = expr;
+    node->u.while_statement.body = body;
+    node->u.while_statement.do_while = do_while;
 
     return node;
 }
@@ -455,17 +486,48 @@ static void _describe(struct ast *node, int spacing)
         _describe(node->u.for_statement.expr, spacing + 2);
         spacing += 2;
         offset_text(spacing);
-        printf("\e[32mCapture\e[0m (\n");
+        printf("\e[32mCapture\e[0m |\n");
         _describe(node->u.for_statement.capture, spacing + 2);
         offset_text(spacing);
-        printf(")\n");
+        printf("|\n");
         offset_text(spacing);
         printf("Body\e[0m {\n");
-        spacing += 2;
-        _describe(node->u.for_statement.body, spacing);
+        _describe(node->u.for_statement.body, spacing + 2);
+        offset_text(spacing);
+        printf("}\n");
         spacing -= 2;
         offset_text(spacing);
         printf("}\n");
+        break;
+    case IF_EXPR:
+        offset_text(spacing);
+        printf("\e[34mIf Expr\e[0m {\n");
+        _describe(node->u.if_expression.expr, spacing + 2);
+        _describe(node->u.if_expression.val, spacing + 2);
+        _describe(node->u.if_expression.else_val, spacing + 2);
+        offset_text(spacing);
+        printf("}\n");
+        break;
+    case EXPR_IF:
+        offset_text(spacing);
+        printf("\e[34mExpr If\e[0m {\n");
+        _describe(node->u.expression_if.expr, spacing + 2);
+        _describe(node->u.expression_if.condition, spacing + 2);
+        offset_text(spacing);
+        printf("}\n");
+        break;
+    case WHILE:
+        offset_text(spacing);
+        printf("\e[34mWhile\e[0m {\n");
+        _describe(node->u.while_statement.expr, spacing + 2);
+        spacing += 2;
+        offset_text(spacing);
+        printf("Body\e[0m {\n");
+        _describe(node->u.while_statement.body, spacing + 2);
+        offset_text(spacing);
+        printf("}\n");
+        offset_text(spacing);
+        printf("\e[36mIs do-while\e[0m: %s\n", node->u.while_statement.do_while ? "true" : "false");
         spacing -= 2;
         offset_text(spacing);
         printf("}\n");

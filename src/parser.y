@@ -6,6 +6,10 @@
 #include <ast.h>
 #include <str.h>
 
+
+extern int yylineno; // Line number from the lexer
+extern char *yytext; // Current token text
+
 int yylex(void);
 int yyerror(const char *s);
 static struct ast *root;
@@ -29,9 +33,9 @@ static struct ast *root;
 %token <ch> CHAR_TOK
 %token <boolean> BOOL_TOK
 %type <node> program statements statement expr ident vars type pointer_type fns fn_args body call_args value unary 
-%type <node> if_cond elsif_branch else_branch fors ident_chain
+%type <node> if_cond elsif_branch else_branch fors ident_chain whiles expr1
 
-%token DEF_TOK END_TOK IF_TOK THEN_TOK ELSIF_TOK ELSE_TOK FOR_TOK DO_TOK
+%token DEF_TOK END_TOK IF_TOK THEN_TOK ELSIF_TOK ELSE_TOK FOR_TOK DO_TOK WHILE_TOK LOOP_TOK
 
 %right '='
 %left PLUS_TOK MINUS_TOK
@@ -54,6 +58,12 @@ statement:
     | fns                           { $$ = $1; }
     | if_cond                       { $$ = $1; }
     | fors                          { $$ = $1; }
+    | whiles                        { $$ = $1; }
+    ;
+
+whiles:
+    WHILE_TOK expr DO_TOK body END_TOK { $$ = while_node($2, $4, 0); }
+    | LOOP_TOK DO_TOK body END_TOK     { $$ = while_node(NULL, $3, 1); }
     ;
 
 ident_chain:
@@ -69,9 +79,9 @@ fors:
     ;
 
 if_cond:
-    IF_TOK expr THEN_TOK body END_TOK           { $$ = if_node($2, $4, NULL); }
-    | IF_TOK expr THEN_TOK body elsif_branch    { $$ = if_node($2, $4, $5);   }    
-    | IF_TOK expr THEN_TOK body else_branch     { $$ = if_node($2, $4, $5);   }
+    IF_TOK expr1 THEN_TOK body END_TOK           { $$ = if_node($2, $4, NULL); }
+    | IF_TOK expr1 THEN_TOK body elsif_branch    { $$ = if_node($2, $4, $5);   }    
+    | IF_TOK expr1 THEN_TOK body else_branch     { $$ = if_node($2, $4, $5);   }
     ;
 
 elsif_branch:
@@ -86,7 +96,7 @@ else_branch:
 
 fns:
     DEF_TOK ident '(' fn_args ')' body END_TOK            { $$ = fn_def_node(type_node(NULL), $2, $4, $6); }
-    | DEF_TOK ident '(' fn_args ')' ':' type body END_TOK   { $$ = fn_def_node(type_node($7), $2, $4, $8); }
+    | DEF_TOK ident '(' fn_args ')' ':' type body END_TOK { $$ = fn_def_node(type_node($7), $2, $4, $8); }
     ;
 
 call_args:
@@ -133,20 +143,26 @@ value:
     ;
 
 unary:
-    value                           { $$ = $1; }
-    | PLUS_TOK expr                 { $$ = unary_node('+', $2); }
-    | MINUS_TOK expr                { $$ = unary_node('-', $2); }
-    | AMP_TOK expr                  { $$ = unary_node('&', $2); }
+    value                            { $$ = $1; }
+    | PLUS_TOK expr1                 { $$ = unary_node('+', $2); }
+    | MINUS_TOK expr1                { $$ = unary_node('-', $2); }
+    | AMP_TOK expr1                  { $$ = unary_node('&', $2); }
 
 expr:
-    unary                           { $$ = $1; }
-    | expr PLUS_TOK expr            { $$ = operation_node('+', $1, $3); }
-    | expr MINUS_TOK expr           { $$ = operation_node('-', $1, $3); }
-    | expr STAR_TOK expr            { $$ = operation_node('*', $1, $3); }
-    | expr SLASH_TOK expr           { $$ = operation_node('/', $1, $3); }
-    | ident '(' call_args ')'       { $$ = fn_call_node($1, $3);        }
-    | '(' expr ')' '(' call_args ')'{ $$ = fn_call_node($2, $5);        }
-    | '(' expr ')'                  { $$ = bracket_node($2);            }
+    expr1                                        { $$ = $1; }
+    | expr1 IF_TOK expr1                         { $$ = expr_if_node($1, $3);     }
+    | IF_TOK expr1 THEN_TOK expr1 ELSE_TOK expr1 { $$ = if_expr_node($2, $4, $6); }
+    ;
+
+expr1:
+    unary                             { $$ = $1; }
+    | expr1 PLUS_TOK expr1            { $$ = operation_node('+', $1, $3); }
+    | expr1 MINUS_TOK expr1           { $$ = operation_node('-', $1, $3); }
+    | expr1 STAR_TOK expr1            { $$ = operation_node('*', $1, $3); }
+    | expr1 SLASH_TOK expr1           { $$ = operation_node('/', $1, $3); }
+    | ident '(' call_args ')'         { $$ = fn_call_node($1, $3);        }
+    | '(' expr ')' '(' call_args ')'  { $$ = fn_call_node($2, $5);        }
+    | '(' expr ')'                    { $$ = bracket_node($2);            }
     ;
 %%
 
@@ -157,6 +173,6 @@ struct ast *parse() {
 }
 
 int yyerror(const char *s) {
-    fprintf(stderr, "Error: %s\n", s);
+    fprintf(stderr, "Error at line %d: %s: '%s'\n", yylineno, s, yytext);
     return 0;
 }

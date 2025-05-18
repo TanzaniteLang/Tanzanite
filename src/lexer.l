@@ -14,6 +14,8 @@
 "for"               return FOR_TOK;
 "do"                return DO_TOK;
 "end"               return END_TOK;
+"while"             return WHILE_TOK;
+"loop"              return LOOP_TOK;
 "true"              { yylval.boolean = true; return BOOL_TOK; }
 "false"             { yylval.boolean = false; return BOOL_TOK; }
 [A-z]+[A-z0-9]*     { yylval.str = str_init(yytext, yyleng); return IDENTIFIER_TOK; }
