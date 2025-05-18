@@ -87,7 +87,7 @@ struct ast *identifier_chain_node(struct ast *list, struct ast *ident)
     return node;
 }
 
-struct ast *operation_node(char op, struct ast *left, struct ast *right)
+struct ast *operation_node(char *op, struct ast *left, struct ast *right)
 {
     struct ast *node = calloc(1, sizeof(*node));
     node->type = OPERATION;
@@ -240,7 +240,7 @@ struct ast *else_node(struct ast *body)
     return node;
 }
 
-struct ast *unary_node(char op, struct ast *val)
+struct ast *unary_node(char *op, struct ast *val)
 {
     struct ast *node = calloc(1, sizeof(*node));
     node->type = UNARY;
@@ -268,6 +268,35 @@ struct ast *while_node(struct ast *expr, struct ast *body, bool do_while)
     node->u.while_statement.expr = expr;
     node->u.while_statement.body = body;
     node->u.while_statement.do_while = do_while;
+
+    return node;
+}
+
+struct ast *field_access_node(struct ast *left, struct ast *right)
+{
+    struct ast *node = calloc(1, sizeof(*node));
+    node->type = FIELD_ACCESS;
+    node->u.field_access.left = left;
+    node->u.field_access.right = right;
+
+    return node;
+}
+struct ast *pointer_deref_node(struct ast *ptr)
+{
+    struct ast *node = calloc(1, sizeof(*node));
+    node->type = POINTER_DEREF;
+    node->u.to_deref = ptr;
+
+    return node;
+}
+
+struct ast *assign_node(char *op, struct ast *left, struct ast *right)
+{
+    struct ast *node = calloc(1, sizeof(*node));
+    node->type = ASSIGNMENT;
+    node->u.assignment.op = op;
+    node->u.assignment.left = left;
+    node->u.assignment.right = right;
 
     return node;
 }
@@ -340,7 +369,7 @@ static void _describe(struct ast *node, int spacing)
         break;
     case OPERATION:
         offset_text(spacing);
-        printf("\e[35mOperation\e[0m: %c\e[0m {\n", node->u.operation.op);
+        printf("\e[35mOperation\e[0m: %s {\n", node->u.operation.op);
         _describe(node->u.operation.left, spacing + 2);
         _describe(node->u.operation.right, spacing + 2);
         offset_text(spacing);
@@ -475,7 +504,7 @@ static void _describe(struct ast *node, int spacing)
         break;
     case UNARY:
         offset_text(spacing);
-        printf("\e[35mUnary\e[0m: %c\e[0m {\n", node->u.unary.op);
+        printf("\e[35mUnary\e[0m: %s\e[0m {\n", node->u.unary.op);
         _describe(node->u.unary.value, spacing + 2);
         offset_text(spacing);
         printf("}\n");
@@ -529,6 +558,29 @@ static void _describe(struct ast *node, int spacing)
         offset_text(spacing);
         printf("\e[36mIs do-while\e[0m: %s\n", node->u.while_statement.do_while ? "true" : "false");
         spacing -= 2;
+        offset_text(spacing);
+        printf("}\n");
+        break;
+    case FIELD_ACCESS:
+        offset_text(spacing);
+        printf("\e[35mAccess\e[0m {\n");
+        _describe(node->u.field_access.left, spacing + 2);
+        _describe(node->u.field_access.right, spacing + 2);
+        offset_text(spacing);
+        printf("}\n");
+        break;
+    case POINTER_DEREF:
+        offset_text(spacing);
+        printf("\e[35mDeref\e[0m {\n");
+        _describe(node->u.program, spacing + 2);
+        offset_text(spacing);
+        printf("}\n");
+        break;
+    case ASSIGNMENT:
+        offset_text(spacing);
+        printf("\e[34mAssignment\e[0m: %s {\n", node->u.assignment.op);
+        _describe(node->u.assignment.left, spacing + 2);
+        _describe(node->u.assignment.right, spacing + 2);
         offset_text(spacing);
         printf("}\n");
         break;

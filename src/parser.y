@@ -7,14 +7,16 @@
 #include <str.h>
 
 
-extern int yylineno; // Line number from the lexer
-extern char *yytext; // Current token text
+extern int yylineno;
+extern int start_column;
+extern int yycolumn;
+extern char *yytext;
 
 int yylex(void);
 int yyerror(const char *s);
 static struct ast *root;
 
-// FIXME: .* as deref
+/* TODO: ++ and -- */
 %}
 
 
@@ -33,14 +35,18 @@ static struct ast *root;
 %token <ch> CHAR_TOK
 %token <boolean> BOOL_TOK
 %type <node> program statements statement expr ident vars type pointer_type fns fn_args body call_args value unary 
-%type <node> if_cond elsif_branch else_branch fors ident_chain whiles expr1
+%type <node> if_cond elsif_branch else_branch fors ident_chain whiles expr1 field_access assignment
 
-%token DEF_TOK END_TOK IF_TOK THEN_TOK ELSIF_TOK ELSE_TOK FOR_TOK DO_TOK WHILE_TOK LOOP_TOK
+%token IF_TOK UNLESS_TOK ELSE_TOK ELSIF_TOK FOR_TOK WHILE_TOK UNTIL_TOK BREAK_TOK NEXT_TOK CASE_TOK WHEN_TOK DEF_TOK
+%token FUN_TOK SIZEOF_TOK BEGIN_TOK RETURN_TOK LOOP_TOK RESCUE_TOK THEN_TOK DO_TOK END_TOK WITH_TOK AUTO_TOK
 
-%right '='
-%left PLUS_TOK MINUS_TOK
-%left STAR_TOK SLASH_TOK
-%left AMP_TOK OR_TOK
+%left '+' INCREMENT_TOK '-' DECREMENT_TOK '*' '/' FLOOR_DIV_TOK '%' '~' '&' '|' '^' PIPE_FORWARD_TOK
+%left LEFT_SHIFT_TOK RIGHT_SHIFT_TOK
+%left EQL_TOK '!' NOT_EQL_TOK AND_TOK OR_TOK '<' LESS_THAN_EQL_TOK '>' GREATER_THAN_EQL_TOK
+%left '.'
+%right '=' ADD_ASSIGN_TOK SUB_ASSIGN_TOK MUL_ASSIGN_TOK DIV_ASSIGN_TOK FLOOR_DIV_ASSIGN_TOK MOD_ASSIGN_TOK
+%right BIT_NOT_ASSIGN_TOK BIT_AND_ASSIGN_TOK BIT_OR_ASSIGN_TOK XOR_ASSIGN_TOK
+%right LEFT_SHIFT_ASSIGN_TOK RIGHT_SHIFT_ASSIGN_TOK
 
 %%
 program:
@@ -74,8 +80,8 @@ ident_chain:
 
 fors:
     FOR_TOK expr DO_TOK body END_TOK { $$ = for_node($2, NULL, $4); }
-    | FOR_TOK expr OR_TOK DO_TOK body END_TOK { $$ = for_node($2, NULL, $5); }
-    | FOR_TOK expr '|' ident_chain '|' DO_TOK body END_TOK { $$ = for_node($2, $4, $7); }
+    | FOR_TOK expr WITH_TOK OR_TOK DO_TOK body END_TOK { $$ = for_node($2, NULL, $6); }
+    | FOR_TOK expr WITH_TOK '|' ident_chain '|' DO_TOK body END_TOK { $$ = for_node($2, $5, $8); }
     ;
 
 if_cond:
@@ -116,7 +122,7 @@ fn_args:
     ;
 
 vars:
-    ident '=' expr                  { $$ = var_def_node(NULL, $1, $3); }
+    ident ':' AUTO_TOK '=' expr     { $$ = var_def_node(NULL, $1, $5); }
     | ident ':' type                { $$ = var_decl_node(type_node($3), $1); }
     | ident ':' type '=' expr       { $$ = var_def_node(type_node($3), $1, $5); }
     ;
@@ -127,11 +133,12 @@ type:
     ;
 
 pointer_type:
-    type STAR_TOK                   { $$ = pointer_node($1, NULL); }
+    type '*'                   { $$ = pointer_node($1, NULL); }
     ;
 
 ident:
     IDENTIFIER_TOK                  { $$ = identifier_node($1); }
+    ;
 
 value:
     INT_TOK                         { $$ = int_node($1);    }
@@ -144,9 +151,23 @@ value:
 
 unary:
     value                            { $$ = $1; }
-    | PLUS_TOK expr1                 { $$ = unary_node('+', $2); }
-    | MINUS_TOK expr1                { $$ = unary_node('-', $2); }
-    | AMP_TOK expr1                  { $$ = unary_node('&', $2); }
+    | '+' value                      { $$ = unary_node("+", $2);      }
+    | '+' '(' expr ')'               { $$ = unary_node("+", $3);      }
+    | INCREMENT_TOK value            { $$ = unary_node("++", $2);     }
+    | INCREMENT_TOK '(' expr ')'     { $$ = unary_node("++", $3);     }
+    | '-' value                      { $$ = unary_node("-", $2);      }
+    | '-' '(' expr ')'               { $$ = unary_node("-", $3);      }
+    | DECREMENT_TOK value            { $$ = unary_node("--", $2);     }
+    | DECREMENT_TOK '(' expr ')'     { $$ = unary_node("--", $3);     }
+    | '!' value                      { $$ = unary_node("!", $2);      }
+    | '!' '(' expr ')'               { $$ = unary_node("!", $3);      }
+    | '~' value                      { $$ = unary_node("~", $2);      }
+    | '~' '(' expr ')'               { $$ = unary_node("~", $3);      }
+    | '&' value                      { $$ = unary_node("&", $2);      }
+    | '&' '(' expr ')'               { $$ = unary_node("&", $3);      }
+    | SIZEOF_TOK value               { $$ = unary_node("sizeof", $2); }
+    | SIZEOF_TOK '(' expr ')'        { $$ = unary_node("sizeof", $3); }
+    ;
 
 expr:
     expr1                                        { $$ = $1; }
@@ -154,15 +175,51 @@ expr:
     | IF_TOK expr1 THEN_TOK expr1 ELSE_TOK expr1 { $$ = if_expr_node($2, $4, $6); }
     ;
 
+field_access:
+    expr1 '.' ident                   { $$ = field_access_node($1, $3);    }
+    | expr1 '.' '*'                   { $$ = pointer_deref_node($1);       }
+    ;
+
+assignment:
+    expr1 '=' expr1                         { $$ = assign_node("=", $1, $3);   }
+    | expr1 ADD_ASSIGN_TOK expr1            { $$ = assign_node("+=", $1, $3);  }
+    | expr1 SUB_ASSIGN_TOK expr1            { $$ = assign_node("-=", $1, $3);  }
+    | expr1 MUL_ASSIGN_TOK expr1            { $$ = assign_node("*=", $1, $3);  }
+    | expr1 DIV_ASSIGN_TOK expr1            { $$ = assign_node("/=", $1, $3);  }
+    | expr1 FLOOR_DIV_ASSIGN_TOK expr1      { $$ = assign_node("//=", $1, $3); }
+    | expr1 MOD_ASSIGN_TOK expr1            { $$ = assign_node("&=", $1, $3);  }
+    | expr1 LEFT_SHIFT_ASSIGN_TOK expr1     { $$ = assign_node("<<=", $1, $3); }
+    | expr1 RIGHT_SHIFT_ASSIGN_TOK expr1    { $$ = assign_node(">>=", $1, $3); }
+    | expr1 BIT_NOT_ASSIGN_TOK expr1        { $$ = assign_node("~=", $1, $3);  }
+    | expr1 BIT_AND_ASSIGN_TOK expr1        { $$ = assign_node("&=", $1, $3);  }
+    | expr1 BIT_OR_ASSIGN_TOK expr1         { $$ = assign_node("|=", $1, $3);  }
+    | expr1 XOR_ASSIGN_TOK expr1            { $$ = assign_node("^=", $1, $3);  }
+    ;
+
 expr1:
-    unary                             { $$ = $1; }
-    | expr1 PLUS_TOK expr1            { $$ = operation_node('+', $1, $3); }
-    | expr1 MINUS_TOK expr1           { $$ = operation_node('-', $1, $3); }
-    | expr1 STAR_TOK expr1            { $$ = operation_node('*', $1, $3); }
-    | expr1 SLASH_TOK expr1           { $$ = operation_node('/', $1, $3); }
-    | ident '(' call_args ')'         { $$ = fn_call_node($1, $3);        }
-    | '(' expr ')' '(' call_args ')'  { $$ = fn_call_node($2, $5);        }
-    | '(' expr ')'                    { $$ = bracket_node($2);            }
+    field_access                      { $$ = $1; }
+    | unary                           { $$ = $1;                           }
+    | expr1 '+' expr1                 { $$ = operation_node("+", $1, $3);  }
+    | expr1 '-' expr1                 { $$ = operation_node("-", $1, $3);  }
+    | expr1 '*' expr1                 { $$ = operation_node("*", $1, $3);  }
+    | expr1 '/' expr1                 { $$ = operation_node("/", $1, $3);  }
+    | expr1 FLOOR_DIV_TOK expr1       { $$ = operation_node("//", $1, $3); }
+    | expr1 '%' expr1                 { $$ = operation_node("%", $1, $3);  }
+    | expr1 LEFT_SHIFT_TOK expr1      { $$ = operation_node("<<", $1, $3); }
+    | expr1 RIGHT_SHIFT_TOK expr1     { $$ = operation_node(">>", $1, $3); }
+    | expr1 EQL_TOK expr1             { $$ = operation_node("==", $1, $3); }
+    | expr1 NOT_EQL_TOK expr1         { $$ = operation_node("!=", $1, $3); }
+    | expr1 '&' expr1                 { $$ = operation_node("&", $1, $3);  }
+    | expr1 '^' expr1                 { $$ = operation_node("^", $1, $3);  }
+    | expr1 '|' expr1                 { $$ = operation_node("|", $1, $3);  }
+    | expr1 AND_TOK expr1             { $$ = operation_node("&&", $1, $3); }
+    | expr1 OR_TOK expr1              { $$ = operation_node("||", $1, $3); }
+    | expr1 PIPE_FORWARD_TOK expr1    { $$ = operation_node("|>", $1, $3); }
+    | assignment                      { $$ = $1; }
+    | ident '(' call_args ')'         { $$ = fn_call_node($1, $3);         }
+    | field_access '(' call_args ')'  { $$ = fn_call_node($1, $3);         }
+    | '(' expr ')' '(' call_args ')'  { $$ = fn_call_node($2, $5);         }
+    | '(' expr ')'                    { $$ = bracket_node($2);             }
     ;
 %%
 
@@ -173,6 +230,6 @@ struct ast *parse() {
 }
 
 int yyerror(const char *s) {
-    fprintf(stderr, "Error at line %d: %s: '%s'\n", yylineno, s, yytext);
+    fprintf(stderr, "Error at line (%d:%d): %s: '%s'\n", yylineno, start_column, s, yytext);
     return 0;
 }

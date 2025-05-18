@@ -39,6 +39,10 @@ enum node_type {
 
     FOR,
     WHILE,
+
+    FIELD_ACCESS,
+    POINTER_DEREF,
+    ASSIGNMENT,
 };
 
 struct ast {
@@ -61,11 +65,11 @@ struct ast {
             struct ast *next;
         } identifier_chain;
         struct {
-            char op;
+            char *op;
             struct ast *value;
         } unary;
         struct {
-            char op;
+            char *op;
             struct ast *left;
             struct ast *right;
         } operation;
@@ -132,6 +136,16 @@ struct ast {
             struct ast *body;
             bool do_while;
         } while_statement;
+        struct {
+            struct ast *left;
+            struct ast *right;
+        } field_access;
+        struct ast *to_deref;
+        struct {
+            char *op;
+            struct ast *left;
+            struct ast *right;
+        } assignment;
     } u;
 };
 
@@ -146,7 +160,7 @@ struct ast *string_node(struct str string);
 struct ast *char_node(char ch);
 struct ast *bool_node(short boolean);
 struct ast *identifier_chain_node(struct ast *list, struct ast *ident);
-struct ast *operation_node(char op, struct ast *left, struct ast *right);
+struct ast *operation_node(char *op, struct ast *left, struct ast *right);
 struct ast *bracket_node(struct ast *expr);
 struct ast *var_decl_node(struct ast *type, struct ast *ident);
 struct ast *var_def_node(struct ast *type, struct ast *ident, struct ast *val);
@@ -161,9 +175,12 @@ struct ast *expr_if_node(struct ast *expr, struct ast *condition);
 struct ast *if_expr_node(struct ast *expr, struct ast *value, struct ast *else_value);
 struct ast *elsif_node(struct ast *expr, struct ast *body, struct ast *next);
 struct ast *else_node(struct ast *body);
-struct ast *unary_node(char op, struct ast *val);
+struct ast *unary_node(char *op, struct ast *val);
 struct ast *for_node(struct ast *expr, struct ast *capture, struct ast *body);
 struct ast *while_node(struct ast *expr, struct ast *body, bool do_while);
+struct ast *field_access_node(struct ast *left, struct ast *right);
+struct ast *pointer_deref_node(struct ast *expr);
+struct ast *assign_node(char *op, struct ast *left, struct ast *right);
 
 void describe(struct ast *node);
 
