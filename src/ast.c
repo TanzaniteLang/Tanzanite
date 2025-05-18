@@ -128,17 +128,18 @@ struct ast *var_def_node(struct ast *type, struct ast *ident, struct ast *val)
     return node;
 }
 
-struct ast *fn_decl_node(struct ast *type, struct ast *ident, struct ast *args)
+struct ast *fn_decl_node(struct ast *type, struct ast *ident, struct ast *args, bool immutable)
 {
     struct ast *node = calloc(1, sizeof(*node));
     node->type = FN_DECL;
     node->u.function_declaration.return_type = type;
     node->u.function_declaration.ident = ident;
     node->u.function_declaration.arg_list = args;
+    node->u.function_declaration.immutable = immutable;
 
     return node;
 }
-struct ast *fn_def_node(struct ast *type, struct ast *ident, struct ast *args, struct ast *body)
+struct ast *fn_def_node(struct ast *type, struct ast *ident, struct ast *args, struct ast *body, bool immutable)
 {
     struct ast *node = calloc(1, sizeof(*node));
     node->type = FN_DEF;
@@ -146,6 +147,7 @@ struct ast *fn_def_node(struct ast *type, struct ast *ident, struct ast *args, s
     node->u.function_definition.ident = ident;
     node->u.function_definition.arg_list = args;
     node->u.function_definition.body = body;
+    node->u.function_definition.immutable = immutable;
 
     return node;
 }
@@ -189,33 +191,36 @@ struct ast *pointer_node(struct ast *list, struct ast *type)
     return node;
 }
 
-struct ast *if_node(struct ast *expr, struct ast *body, struct ast *next)
+struct ast *if_node(struct ast *expr, struct ast *body, struct ast *next, bool unless)
 {
     struct ast *node = calloc(1, sizeof(*node));
     node->type = IF_COND;
     node->u.if_statement.expr = expr;
     node->u.if_statement.body = body;
     node->u.if_statement.next = next;
+    node->u.if_statement.unless = unless;
 
     return node;
 }
-struct ast *expr_if_node(struct ast *expr, struct ast *condition)
+struct ast *expr_if_node(struct ast *expr, struct ast *condition, bool unless)
 {
     struct ast *node = calloc(1, sizeof(*node));
     node->type = EXPR_IF;
     node->u.expression_if.expr = expr;
     node->u.expression_if.condition = condition;
+    node->u.expression_if.unless = unless;
 
     return node;
 }
 
-struct ast *if_expr_node(struct ast *expr, struct ast *value, struct ast *else_value)
+struct ast *if_expr_node(struct ast *expr, struct ast *value, struct ast *else_value, bool unless)
 {
     struct ast *node = calloc(1, sizeof(*node));
     node->type = IF_EXPR;
     node->u.if_expression.expr = expr;
     node->u.if_expression.val = value;
     node->u.if_expression.else_val = else_value;
+    node->u.if_expression.unless = unless;
 
     return node;
 }
@@ -261,13 +266,14 @@ struct ast *for_node(struct ast *expr, struct ast *capture, struct ast *body)
     return node;
 }
 
-struct ast *while_node(struct ast *expr, struct ast *body, bool do_while)
+struct ast *while_node(struct ast *expr, struct ast *body, bool do_while, bool until)
 {
     struct ast *node = calloc(1, sizeof(*node));
     node->type = WHILE;
     node->u.while_statement.expr = expr;
     node->u.while_statement.body = body;
     node->u.while_statement.do_while = do_while;
+    node->u.while_statement.until = until;
 
     return node;
 }
@@ -297,6 +303,16 @@ struct ast *assign_node(char *op, struct ast *left, struct ast *right)
     node->u.assignment.op = op;
     node->u.assignment.left = left;
     node->u.assignment.right = right;
+
+    return node;
+}
+
+struct ast *type_cast_node(struct ast *expr, struct ast *type)
+{
+    struct ast *node = calloc(1, sizeof(*node));
+    node->type = TYPE_CAST;
+    node->u.type_cast.expr = expr;
+    node->u.type_cast.type = type;
 
     return node;
 }
@@ -427,6 +443,13 @@ static void _describe(struct ast *node, int spacing)
         _describe(node->u.function_declaration.return_type, spacing + 2);
         _describe(node->u.variable_declaration.identifier, spacing + 2);
         spacing += 2;
+        if (node->u.function_declaration.immutable) {
+            offset_text(spacing);
+            printf("C Function: Yes\n");
+        } else {
+            offset_text(spacing);
+            printf("C Function: No\n");
+        }
         offset_text(spacing);
         printf("\e[32mArguments\e[0m (\n");
         _describe(node->u.function_declaration.arg_list, spacing + 2);
@@ -451,8 +474,15 @@ static void _describe(struct ast *node, int spacing)
         offset_text(spacing);
         printf("\e[34mFn Def\e[0m {\n");
         _describe(node->u.function_definition.return_type, spacing + 2);
-        _describe(node->u.variable_definition.identifier, spacing + 2);
+        _describe(node->u.function_definition.ident, spacing + 2);
         spacing += 2;
+        if (node->u.function_definition.immutable) {
+            offset_text(spacing);
+            printf("C Function: Yes\n");
+        } else {
+            offset_text(spacing);
+            printf("C Function: No\n");
+        }
         offset_text(spacing);
         printf("\e[32mArguments\e[0m (\n");
         _describe(node->u.function_definition.arg_list, spacing + 2);
@@ -485,7 +515,7 @@ static void _describe(struct ast *node, int spacing)
         break;
     case IF_COND:
         offset_text(spacing);
-        printf("\e[33mIf\e[0m {\n");
+        printf("\e[33m%s\e[0m {\n", node->u.if_statement.unless ? "Unless" : "If");
         _describe(node->u.if_statement.expr, spacing + 2);
         _describe(node->u.if_statement.body, spacing + 2);
         _describe(node->u.if_statement.next, spacing);
@@ -530,7 +560,7 @@ static void _describe(struct ast *node, int spacing)
         break;
     case IF_EXPR:
         offset_text(spacing);
-        printf("\e[34mIf Expr\e[0m {\n");
+        printf("\e[34m%s Expr\e[0m {\n", node->u.if_expression.unless ? "Unless" : "If");
         _describe(node->u.if_expression.expr, spacing + 2);
         _describe(node->u.if_expression.val, spacing + 2);
         _describe(node->u.if_expression.else_val, spacing + 2);
@@ -539,7 +569,7 @@ static void _describe(struct ast *node, int spacing)
         break;
     case EXPR_IF:
         offset_text(spacing);
-        printf("\e[34mExpr If\e[0m {\n");
+        printf("\e[34mExpr %s\e[0m {\n", node->u.expression_if.unless ? "Unless" : "If");
         _describe(node->u.expression_if.expr, spacing + 2);
         _describe(node->u.expression_if.condition, spacing + 2);
         offset_text(spacing);
@@ -547,7 +577,7 @@ static void _describe(struct ast *node, int spacing)
         break;
     case WHILE:
         offset_text(spacing);
-        printf("\e[34mWhile\e[0m {\n");
+        printf("\e[34m%s\e[0m {\n", node->u.while_statement.until ? "Until" : "While");
         _describe(node->u.while_statement.expr, spacing + 2);
         spacing += 2;
         offset_text(spacing);
@@ -584,6 +614,15 @@ static void _describe(struct ast *node, int spacing)
         offset_text(spacing);
         printf("}\n");
         break;
+    case TYPE_CAST:
+        offset_text(spacing);
+        printf("\e[31mType Cast\e[0m {\n");
+        _describe(node->u.type_cast.expr, spacing + 2);
+        _describe(node->u.type_cast.type, spacing + 2);
+        offset_text(spacing);
+        printf("}\n");
+        break;
+
     }
 }
 

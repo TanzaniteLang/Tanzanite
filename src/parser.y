@@ -15,8 +15,6 @@ extern char *yytext;
 int yylex(void);
 int yyerror(const char *s);
 static struct ast *root;
-
-/* TODO: ++ and -- */
 %}
 
 
@@ -41,9 +39,8 @@ static struct ast *root;
 %token FUN_TOK SIZEOF_TOK BEGIN_TOK RETURN_TOK LOOP_TOK RESCUE_TOK THEN_TOK DO_TOK END_TOK WITH_TOK AUTO_TOK
 
 %left '+' INCREMENT_TOK '-' DECREMENT_TOK '*' '/' FLOOR_DIV_TOK '%' '~' '&' '|' '^' PIPE_FORWARD_TOK
-%left LEFT_SHIFT_TOK RIGHT_SHIFT_TOK
+%left LEFT_SHIFT_TOK RIGHT_SHIFT_TOK '.' AS_TOK
 %left EQL_TOK '!' NOT_EQL_TOK AND_TOK OR_TOK '<' LESS_THAN_EQL_TOK '>' GREATER_THAN_EQL_TOK
-%left '.'
 %right '=' ADD_ASSIGN_TOK SUB_ASSIGN_TOK MUL_ASSIGN_TOK DIV_ASSIGN_TOK FLOOR_DIV_ASSIGN_TOK MOD_ASSIGN_TOK
 %right BIT_NOT_ASSIGN_TOK BIT_AND_ASSIGN_TOK BIT_OR_ASSIGN_TOK XOR_ASSIGN_TOK
 %right LEFT_SHIFT_ASSIGN_TOK RIGHT_SHIFT_ASSIGN_TOK
@@ -56,7 +53,7 @@ program:
 statements:
     statement statements            { $$ = statement_node($2, $1); }
     | expr ';' statements           { $$ = statement_node($3, $1); }
-    |                               { $$ = NULL; }
+    |                               { $$ = NULL;                   }
     ;
 
 statement:
@@ -68,32 +65,36 @@ statement:
     ;
 
 whiles:
-    WHILE_TOK expr DO_TOK body END_TOK { $$ = while_node($2, $4, 0); }
-    | LOOP_TOK DO_TOK body END_TOK     { $$ = while_node(NULL, $3, 1); }
+    WHILE_TOK expr DO_TOK body END_TOK   { $$ = while_node($2, $4, 0, 0);   }
+    | LOOP_TOK DO_TOK body END_TOK       { $$ = while_node(NULL, $3, 1, 0); }
+    | UNTIL_TOK expr DO_TOK body END_TOK { $$ = while_node($2, $4, 0, 1);   }
     ;
 
 ident_chain:
     ident                           { $$ = identifier_chain_node(NULL, $1); }
     | ident ',' ident_chain         { $$ = identifier_chain_node($3, $1);   }
-    |                               { $$ = NULL; };
+    |                               { $$ = NULL;                            }
     ;
 
 fors:
-    FOR_TOK expr DO_TOK body END_TOK { $$ = for_node($2, NULL, $4); }
-    | FOR_TOK expr WITH_TOK OR_TOK DO_TOK body END_TOK { $$ = for_node($2, NULL, $6); }
-    | FOR_TOK expr WITH_TOK '|' ident_chain '|' DO_TOK body END_TOK { $$ = for_node($2, $5, $8); }
+    FOR_TOK expr DO_TOK body END_TOK                                { $$ = for_node($2, NULL, $4); }
+    | FOR_TOK expr WITH_TOK OR_TOK DO_TOK body END_TOK              { $$ = for_node($2, NULL, $6); }
+    | FOR_TOK expr WITH_TOK '|' ident_chain '|' DO_TOK body END_TOK { $$ = for_node($2, $5, $8);   }
     ;
 
 if_cond:
-    IF_TOK expr1 THEN_TOK body END_TOK           { $$ = if_node($2, $4, NULL); }
-    | IF_TOK expr1 THEN_TOK body elsif_branch    { $$ = if_node($2, $4, $5);   }    
-    | IF_TOK expr1 THEN_TOK body else_branch     { $$ = if_node($2, $4, $5);   }
+    IF_TOK expr1 THEN_TOK body END_TOK            { $$ = if_node($2, $4, NULL, 0); }
+    | IF_TOK expr1 THEN_TOK body elsif_branch     { $$ = if_node($2, $4, $5, 0);   }    
+    | IF_TOK expr1 THEN_TOK body else_branch      { $$ = if_node($2, $4, $5, 0);   }
+    | UNLESS_TOK expr1 THEN_TOK body END_TOK      { $$ = if_node($2, $4, NULL, 1); }
+    | UNLESS_TOK expr1 THEN_TOK body elsif_branch { $$ = if_node($2, $4, $5, 1);   }    
+    | UNLESS_TOK expr1 THEN_TOK body else_branch  { $$ = if_node($2, $4, $5, 1);   }
     ;
 
 elsif_branch:
     ELSIF_TOK expr THEN_TOK body END_TOK        { $$ = elsif_node($2, $4, NULL); }
-    | ELSIF_TOK expr THEN_TOK body elsif_branch { $$ = elsif_node($2, $4, $5); }
-    | ELSIF_TOK expr THEN_TOK body else_branch  { $$ = elsif_node($2, $4, $5); }
+    | ELSIF_TOK expr THEN_TOK body elsif_branch { $$ = elsif_node($2, $4, $5);   }
+    | ELSIF_TOK expr THEN_TOK body else_branch  { $$ = elsif_node($2, $4, $5);   }
     ;
 
 else_branch:
@@ -101,8 +102,10 @@ else_branch:
     ;
 
 fns:
-    DEF_TOK ident '(' fn_args ')' body END_TOK            { $$ = fn_def_node(type_node(NULL), $2, $4, $6); }
-    | DEF_TOK ident '(' fn_args ')' ':' type body END_TOK { $$ = fn_def_node(type_node($7), $2, $4, $8); }
+    DEF_TOK ident '(' fn_args ')' body END_TOK            { $$ = fn_def_node(type_node(NULL), $2, $4, $6, 0); }
+    | DEF_TOK ident '(' fn_args ')' ':' type body END_TOK { $$ = fn_def_node(type_node($7), $2, $4, $8, 0);   }
+    | FUN_TOK ident '(' fn_args ')' body END_TOK          { $$ = fn_def_node(type_node(NULL), $2, $4, $6, 1); }
+    | FUN_TOK ident '(' fn_args ')' ':' type body END_TOK { $$ = fn_def_node(type_node($7), $2, $4, $8, 1);   }
     ;
 
 call_args:
@@ -133,7 +136,7 @@ type:
     ;
 
 pointer_type:
-    type '*'                   { $$ = pointer_node($1, NULL); }
+    '*' type                        { $$ = pointer_node($2, NULL); }
     ;
 
 ident:
@@ -150,34 +153,38 @@ value:
     ;
 
 unary:
-    value                            { $$ = $1; }
-    | '+' value                      { $$ = unary_node("+", $2);      }
-    | '+' '(' expr ')'               { $$ = unary_node("+", $3);      }
-    | INCREMENT_TOK value            { $$ = unary_node("++", $2);     }
-    | INCREMENT_TOK '(' expr ')'     { $$ = unary_node("++", $3);     }
-    | '-' value                      { $$ = unary_node("-", $2);      }
-    | '-' '(' expr ')'               { $$ = unary_node("-", $3);      }
-    | DECREMENT_TOK value            { $$ = unary_node("--", $2);     }
-    | DECREMENT_TOK '(' expr ')'     { $$ = unary_node("--", $3);     }
-    | '!' value                      { $$ = unary_node("!", $2);      }
-    | '!' '(' expr ')'               { $$ = unary_node("!", $3);      }
-    | '~' value                      { $$ = unary_node("~", $2);      }
-    | '~' '(' expr ')'               { $$ = unary_node("~", $3);      }
-    | '&' value                      { $$ = unary_node("&", $2);      }
-    | '&' '(' expr ')'               { $$ = unary_node("&", $3);      }
-    | SIZEOF_TOK value               { $$ = unary_node("sizeof", $2); }
-    | SIZEOF_TOK '(' expr ')'        { $$ = unary_node("sizeof", $3); }
+    value                           { $$ = $1;                                 }
+    | '+' value                     { $$ = unary_node("+", $2);                }
+    | '+' '(' expr ')'              { $$ = unary_node("+", $3);                }
+    | INCREMENT_TOK value           { $$ = unary_node("++", $2);               }
+    | INCREMENT_TOK '(' expr ')'    { $$ = unary_node("++", $3);               }
+    | '-' value                     { $$ = unary_node("-", $2);                }
+    | '-' '(' expr ')'              { $$ = unary_node("-", $3);                }
+    | DECREMENT_TOK value           { $$ = unary_node("--", $2);               }
+    | DECREMENT_TOK '(' expr ')'    { $$ = unary_node("--", $3);               }
+    | '!' value                     { $$ = unary_node("!", $2);                }
+    | '!' '(' expr ')'              { $$ = unary_node("!", $3);                }
+    | '~' value                     { $$ = unary_node("~", $2);                }
+    | '~' '(' expr ')'              { $$ = unary_node("~", $3);                }
+    | expr1 AS_TOK type             { $$ = type_cast_node($1, type_node($3));  } 
+    | '*' value                     { $$ = pointer_deref_node($2);             }
+    | '*' '(' expr ')'              { $$ = pointer_deref_node($3);             }
+    | '&' value                     { $$ = unary_node("&", $2);                }
+    | '&' '(' expr ')'              { $$ = unary_node("&", $3);                }
+    | SIZEOF_TOK value              { $$ = unary_node("sizeof", $2);           }
+    | SIZEOF_TOK '(' expr ')'       { $$ = unary_node("sizeof", $3);           }
     ;
 
 expr:
-    expr1                                        { $$ = $1; }
-    | expr1 IF_TOK expr1                         { $$ = expr_if_node($1, $3);     }
-    | IF_TOK expr1 THEN_TOK expr1 ELSE_TOK expr1 { $$ = if_expr_node($2, $4, $6); }
+    expr1                                        { $$ = $1;                              }
+    | expr1 IF_TOK expr1                         { $$ = expr_if_node($1, $3, 0);         }
+    | expr1 UNLESS_TOK expr1                         { $$ = expr_if_node($1, $3, 1);     }
+    | IF_TOK expr1 THEN_TOK expr1 ELSE_TOK expr1 { $$ = if_expr_node($2, $4, $6, 0);     }
+    | UNLESS_TOK expr1 THEN_TOK expr1 ELSE_TOK expr1 { $$ = if_expr_node($2, $4, $6, 1); }
     ;
 
 field_access:
-    expr1 '.' ident                   { $$ = field_access_node($1, $3);    }
-    | expr1 '.' '*'                   { $$ = pointer_deref_node($1);       }
+    expr1 '.' ident                         { $$ = field_access_node($1, $3); }
     ;
 
 assignment:
@@ -197,29 +204,30 @@ assignment:
     ;
 
 expr1:
-    field_access                      { $$ = $1; }
-    | unary                           { $$ = $1;                           }
-    | expr1 '+' expr1                 { $$ = operation_node("+", $1, $3);  }
-    | expr1 '-' expr1                 { $$ = operation_node("-", $1, $3);  }
-    | expr1 '*' expr1                 { $$ = operation_node("*", $1, $3);  }
-    | expr1 '/' expr1                 { $$ = operation_node("/", $1, $3);  }
-    | expr1 FLOOR_DIV_TOK expr1       { $$ = operation_node("//", $1, $3); }
-    | expr1 '%' expr1                 { $$ = operation_node("%", $1, $3);  }
-    | expr1 LEFT_SHIFT_TOK expr1      { $$ = operation_node("<<", $1, $3); }
-    | expr1 RIGHT_SHIFT_TOK expr1     { $$ = operation_node(">>", $1, $3); }
-    | expr1 EQL_TOK expr1             { $$ = operation_node("==", $1, $3); }
-    | expr1 NOT_EQL_TOK expr1         { $$ = operation_node("!=", $1, $3); }
-    | expr1 '&' expr1                 { $$ = operation_node("&", $1, $3);  }
-    | expr1 '^' expr1                 { $$ = operation_node("^", $1, $3);  }
-    | expr1 '|' expr1                 { $$ = operation_node("|", $1, $3);  }
-    | expr1 AND_TOK expr1             { $$ = operation_node("&&", $1, $3); }
-    | expr1 OR_TOK expr1              { $$ = operation_node("||", $1, $3); }
-    | expr1 PIPE_FORWARD_TOK expr1    { $$ = operation_node("|>", $1, $3); }
-    | assignment                      { $$ = $1; }
-    | ident '(' call_args ')'         { $$ = fn_call_node($1, $3);         }
-    | field_access '(' call_args ')'  { $$ = fn_call_node($1, $3);         }
-    | '(' expr ')' '(' call_args ')'  { $$ = fn_call_node($2, $5);         }
-    | '(' expr ')'                    { $$ = bracket_node($2);             }
+    field_access                      { $$ = $1;                             }
+    | unary                           { $$ = $1;                             }
+    | expr1 '+' expr1                 { $$ = operation_node("+", $1, $3);    }
+    | expr1 INCREMENT_TOK             { $$ = operation_node("++", $1, NULL); }
+    | expr1 '-' expr1                 { $$ = operation_node("-", $1, $3);    }
+    | expr1 DECREMENT_TOK             { $$ = operation_node("--", $1, NULL); }
+    | expr1 '*' expr1                 { $$ = operation_node("*", $1, $3);    }
+    | expr1 '/' expr1                 { $$ = operation_node("/", $1, $3);    }
+    | expr1 FLOOR_DIV_TOK expr1       { $$ = operation_node("//", $1, $3);   }
+    | expr1 '%' expr1                 { $$ = operation_node("%", $1, $3);    }
+    | expr1 LEFT_SHIFT_TOK expr1      { $$ = operation_node("<<", $1, $3);   }
+    | expr1 RIGHT_SHIFT_TOK expr1     { $$ = operation_node(">>", $1, $3);   }
+    | expr1 EQL_TOK expr1             { $$ = operation_node("==", $1, $3);   }
+    | expr1 NOT_EQL_TOK expr1         { $$ = operation_node("!=", $1, $3);   }
+    | expr1 '&' expr1                 { $$ = operation_node("&", $1, $3);    }
+    | expr1 '^' expr1                 { $$ = operation_node("^", $1, $3);    }
+    | expr1 '|' expr1                 { $$ = operation_node("|", $1, $3);    }
+    | expr1 AND_TOK expr1             { $$ = operation_node("&&", $1, $3);   }
+    | expr1 OR_TOK expr1              { $$ = operation_node("||", $1, $3);   }
+    | expr1 PIPE_FORWARD_TOK expr1    { $$ = operation_node("|>", $1, $3);   }
+    | assignment                      { $$ = $1;                             }
+    | ident '(' call_args ')'         { $$ = fn_call_node($1, $3);           }
+    | field_access '(' call_args ')'  { $$ = fn_call_node($1, $3);           }
+    | '(' expr ')'                    { $$ = bracket_node($2);               }
     ;
 %%
 

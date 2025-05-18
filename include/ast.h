@@ -43,6 +43,8 @@ enum node_type {
     FIELD_ACCESS,
     POINTER_DEREF,
     ASSIGNMENT,
+
+    TYPE_CAST,
 };
 
 struct ast {
@@ -91,12 +93,14 @@ struct ast {
             struct ast *return_type;
             struct ast *ident;
             struct ast *arg_list;
+            bool immutable;
         } function_declaration;
         struct {
             struct ast *return_type;
             struct ast *ident;
             struct ast *arg_list;
             struct ast *body;
+            bool immutable;
         } function_definition;
         struct {
             struct ast *current;
@@ -110,15 +114,18 @@ struct ast {
             struct ast *expr;
             struct ast *body;
             struct ast *next;
+            bool unless;
         } if_statement;
         struct {
             struct ast *expr;
             struct ast *val;
             struct ast *else_val;
+            bool unless;
         } if_expression;
         struct {
             struct ast *expr;
             struct ast *condition;
+            bool unless;
         } expression_if;
         struct {
             struct ast *expr;
@@ -135,6 +142,7 @@ struct ast {
             struct ast *expr;
             struct ast *body;
             bool do_while;
+            bool until;
         } while_statement;
         struct {
             struct ast *left;
@@ -146,6 +154,10 @@ struct ast {
             struct ast *left;
             struct ast *right;
         } assignment;
+        struct {
+            struct ast *expr;
+            struct ast *type;
+        } type_cast;
     } u;
 };
 
@@ -164,23 +176,24 @@ struct ast *operation_node(char *op, struct ast *left, struct ast *right);
 struct ast *bracket_node(struct ast *expr);
 struct ast *var_decl_node(struct ast *type, struct ast *ident);
 struct ast *var_def_node(struct ast *type, struct ast *ident, struct ast *val);
-struct ast *fn_decl_node(struct ast *type, struct ast *ident, struct ast *args);
-struct ast *fn_def_node(struct ast *type, struct ast *ident, struct ast *args, struct ast *body);
+struct ast *fn_decl_node(struct ast *type, struct ast *ident, struct ast *args, bool immutable);
+struct ast *fn_def_node(struct ast *type, struct ast *ident, struct ast *args, struct ast *body, bool immutable);
 struct ast *fn_call_node(struct ast *ident, struct ast *first_arg);
 struct ast *fn_arg_list_node(struct ast *list, struct ast *arg);
 struct ast *type_node(struct ast *type);
 struct ast *pointer_node(struct ast *list, struct ast *type);
-struct ast *if_node(struct ast *expr, struct ast *body, struct ast *next);
-struct ast *expr_if_node(struct ast *expr, struct ast *condition);
-struct ast *if_expr_node(struct ast *expr, struct ast *value, struct ast *else_value);
+struct ast *if_node(struct ast *expr, struct ast *body, struct ast *next, bool unless);
+struct ast *expr_if_node(struct ast *expr, struct ast *condition, bool unless);
+struct ast *if_expr_node(struct ast *expr, struct ast *value, struct ast *else_value, bool unless);
 struct ast *elsif_node(struct ast *expr, struct ast *body, struct ast *next);
 struct ast *else_node(struct ast *body);
 struct ast *unary_node(char *op, struct ast *val);
 struct ast *for_node(struct ast *expr, struct ast *capture, struct ast *body);
-struct ast *while_node(struct ast *expr, struct ast *body, bool do_while);
+struct ast *while_node(struct ast *expr, struct ast *body, bool do_while, bool until);
 struct ast *field_access_node(struct ast *left, struct ast *right);
 struct ast *pointer_deref_node(struct ast *expr);
 struct ast *assign_node(char *op, struct ast *left, struct ast *right);
+struct ast *type_cast_node(struct ast *expr, struct ast *type);
 
 void describe(struct ast *node);
 

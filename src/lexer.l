@@ -68,6 +68,7 @@ int start_column = 0;
 "end"               return END_TOK;
 "with"              return WITH_TOK;
 "auto"              return AUTO_TOK;
+"as"                return AS_TOK;
 
  /* Operators */
 "=="                return EQL_TOK;
