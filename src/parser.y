@@ -28,14 +28,15 @@ static struct ast *root;
 %token <str> IDENTIFIER_TOK STRING_TOK
 %token <ch> CHAR_TOK
 %token <boolean> BOOL_TOK
-%type <node> program statements statement expr ident vars type pointer_type fns fn_args body call_args value unary
-%type <node> if_cond elsif_branch else_branch
+%type <node> program statements statement expr ident vars type pointer_type fns fn_args body call_args value unary 
+%type <node> if_cond elsif_branch else_branch fors ident_chain
 
-%token DEF_TOK END_TOK IF_TOK THEN_TOK ELSIF_TOK ELSE_TOK
+%token DEF_TOK END_TOK IF_TOK THEN_TOK ELSIF_TOK ELSE_TOK FOR_TOK DO_TOK
 
+%right '='
 %left PLUS_TOK MINUS_TOK
 %left STAR_TOK SLASH_TOK
-%left AMP_TOK
+%left AMP_TOK OR_TOK
 
 %%
 program:
@@ -52,6 +53,19 @@ statement:
     vars ';'                        { $$ = $1; }
     | fns                           { $$ = $1; }
     | if_cond                       { $$ = $1; }
+    | fors                          { $$ = $1; }
+    ;
+
+ident_chain:
+    ident                           { $$ = identifier_chain_node(NULL, $1); }
+    | ident ',' ident_chain         { $$ = identifier_chain_node($3, $1);   }
+    |                               { $$ = NULL; };
+    ;
+
+fors:
+    FOR_TOK expr DO_TOK body END_TOK { $$ = for_node($2, NULL, $4); }
+    | FOR_TOK expr OR_TOK DO_TOK body END_TOK { $$ = for_node($2, NULL, $5); }
+    | FOR_TOK expr '|' ident_chain '|' DO_TOK body END_TOK { $$ = for_node($2, $4, $7); }
     ;
 
 if_cond:

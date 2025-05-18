@@ -34,6 +34,8 @@ enum node_type {
     IF_COND,
     ELSIF_COND,
     ELSE_COND,
+
+    FOR,
 };
 
 struct ast {
@@ -108,6 +110,11 @@ struct ast {
             struct ast *next;
         } elsif_statement;
         struct ast *else_statement;
+        struct {
+            struct ast *expr;
+            struct ast *capture;
+            struct ast *body;
+        } for_statement;
     } u;
 };
 
@@ -136,6 +143,7 @@ struct ast *if_node(struct ast *expr, struct ast *body, struct ast *next);
 struct ast *elsif_node(struct ast *expr, struct ast *body, struct ast *next);
 struct ast *else_node(struct ast *body);
 struct ast *unary_node(char op, struct ast *val);
+struct ast *for_node(struct ast *expr, struct ast *capture, struct ast *body);
 
 void describe(struct ast *node);
 

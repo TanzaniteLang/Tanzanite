@@ -11,6 +11,8 @@
 "else"              return ELSE_TOK;
 "then"              return THEN_TOK;
 "def"               return DEF_TOK;
+"for"               return FOR_TOK;
+"do"                return DO_TOK;
 "end"               return END_TOK;
 "true"              { yylval.boolean = true; return BOOL_TOK; }
 "false"             { yylval.boolean = false; return BOOL_TOK; }
@@ -29,6 +31,8 @@
 "}"                 return '}';
 "("                 return '(';
 ")"                 return ')';
+"|"                 return '|';
+"||"                return OR_TOK;
 "&"                 return AMP_TOK;
 "+"                 return PLUS_TOK;
 "-"                 return MINUS_TOK;

@@ -230,6 +230,17 @@ struct ast *unary_node(char op, struct ast *val)
     return node;
 }
 
+struct ast *for_node(struct ast *expr, struct ast *capture, struct ast *body)
+{
+    struct ast *node = calloc(1, sizeof(*node));
+    node->type = FOR;
+    node->u.for_statement.expr = expr;
+    node->u.for_statement.capture = capture;
+    node->u.for_statement.body = body;
+
+    return node;
+}
+
 
 
 static void offset_text(int count)
@@ -435,6 +446,27 @@ static void _describe(struct ast *node, int spacing)
         offset_text(spacing);
         printf("\e[35mUnary\e[0m: %c\e[0m {\n", node->u.unary.op);
         _describe(node->u.unary.value, spacing + 2);
+        offset_text(spacing);
+        printf("}\n");
+        break;
+    case FOR:
+        offset_text(spacing);
+        printf("\e[34mFor\e[0m {\n");
+        _describe(node->u.for_statement.expr, spacing + 2);
+        spacing += 2;
+        offset_text(spacing);
+        printf("\e[32mCapture\e[0m (\n");
+        _describe(node->u.for_statement.capture, spacing + 2);
+        offset_text(spacing);
+        printf(")\n");
+        offset_text(spacing);
+        printf("Body\e[0m {\n");
+        spacing += 2;
+        _describe(node->u.for_statement.body, spacing);
+        spacing -= 2;
+        offset_text(spacing);
+        printf("}\n");
+        spacing -= 2;
         offset_text(spacing);
         printf("}\n");
         break;
