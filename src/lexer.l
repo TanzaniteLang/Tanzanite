@@ -2,6 +2,7 @@
 #include <ast.h>
 #include <str.h>
 #include <parser.h>
+#include <stdbool.h>
 %}
 
 %%
@@ -11,12 +12,16 @@
 "then"              return THEN_TOK;
 "def"               return DEF_TOK;
 "end"               return END_TOK;
+"true"              { yylval.boolean = true; return BOOL_TOK; }
+"false"             { yylval.boolean = false; return BOOL_TOK; }
 [A-z]+[A-z0-9]*     { yylval.str = str_init(yytext, yyleng); return IDENTIFIER_TOK; }
 \"(?:[^"\\]|\\.)*\" { yylval.str = str_init(yytext + 1, yyleng - 2); return STRING_TOK;     }
+'.+'                { yylval.ch = yytext[1]; return CHAR_TOK; }
+[0-9]+\.[0-9]+      { yylval.dec = strtod(yytext, NULL); return FLOAT_TOK; }
 [0-9]+              { yylval.num = atol(yytext); return INT_TOK; }
-[0-9]+\.[0-9]+      { yylval.dec = strtod(yytext, NULL); }
 [ \t\n]             ;
 ","                 return ',';
+"'"                 return '\'';
 ";"                 return ';';
 "="                 return '=';
 ":"                 return ':';

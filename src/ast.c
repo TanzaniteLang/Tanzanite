@@ -59,6 +59,24 @@ struct ast *string_node(struct str string)
     return node;
 }
 
+struct ast *char_node(char ch)
+{
+    struct ast *node = calloc(1, sizeof(*node));
+    node->type = CHAR;
+    node->u.ch = ch;
+
+    return node;
+}
+
+struct ast *bool_node(short boolean)
+{
+    struct ast *node = calloc(1, sizeof(*node));
+    node->type = BOOL;
+    node->u.boolean = boolean;
+
+    return node;
+}
+
 struct ast *identifier_chain_node(struct ast *list, struct ast *ident)
 {
     struct ast *node = calloc(1, sizeof(*node));
@@ -269,6 +287,14 @@ static void _describe(struct ast *node, int spacing)
     case STRING:
         offset_text(spacing);
         printf("\e[36mStr\e[0m: %s\n", node->u.string.str);
+        break;
+    case CHAR:
+        offset_text(spacing);
+        printf("\e[36mChar\e[0m: %c\n", node->u.ch);
+        break;
+    case BOOL:
+        offset_text(spacing);
+        printf("\e[36mBool\e[0m: %s\n", node->u.boolean ? "true" : "false");
         break;
     case OPERATION:
         offset_text(spacing);

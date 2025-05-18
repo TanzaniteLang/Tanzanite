@@ -17,6 +17,8 @@ static struct ast *root;
 %union {
     struct ast *node;
     struct str str;
+    short boolean;
+    char ch;
     uint64_t num;
     double dec;
 }
@@ -24,6 +26,8 @@ static struct ast *root;
 %token <num> INT_TOK
 %token <dec> FLOAT_TOK
 %token <str> IDENTIFIER_TOK STRING_TOK
+%token <ch> CHAR_TOK
+%token <boolean> BOOL_TOK
 %type <node> program statements statement expr ident vars type pointer_type fns fn_args body call_args value unary
 %type <node> if_cond elsif_branch else_branch
 
@@ -108,15 +112,17 @@ ident:
 value:
     INT_TOK                         { $$ = int_node($1);    }
     | FLOAT_TOK                     { $$ = float_node($1);  }
+    | STRING_TOK                    { $$ = string_node($1); }
+    | CHAR_TOK                      { $$ = char_node($1);   }
+    | BOOL_TOK                      { $$ = bool_node($1);   }
     | ident                         { $$ = $1;              }
     ;
 
 unary:
     value                           { $$ = $1; }
-    | STRING_TOK                    { $$ = string_node($1); }
-    | PLUS_TOK value                { $$ = unary_node('+', $2); }
-    | MINUS_TOK value               { $$ = unary_node('-', $2); }
-    | AMP_TOK value                 { $$ = unary_node('&', $2); }
+    | PLUS_TOK expr                 { $$ = unary_node('+', $2); }
+    | MINUS_TOK expr                { $$ = unary_node('-', $2); }
+    | AMP_TOK expr                  { $$ = unary_node('&', $2); }
 
 expr:
     unary                           { $$ = $1; }
