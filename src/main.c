@@ -1,10 +1,15 @@
+#include <stdio.h>
 #include <ast.h>
-
-struct ast *parse();
+#include <str.h>
+#include <codegen.h>
 
 int main()
 {
+    printf("TZN: Parsing...\n");
     struct ast *parsed = parse();
-    describe(parsed);
+    printf("TZN: AST codegen...\n");
+    struct str code = emit_c(parsed);
+
+    printf("Code:\n\n%s", code.str);
     return 0;
 }

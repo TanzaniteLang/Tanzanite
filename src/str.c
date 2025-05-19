@@ -19,6 +19,8 @@ struct str str_init(const char *string, uint64_t len)
 void str_free(struct str *str)
 {
     free(str->str);
+    str->str = NULL;
+    str->size = 0;
 }
 
 

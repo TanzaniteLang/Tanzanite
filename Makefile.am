@@ -8,7 +8,7 @@ include/parser.h: src/parser.h
 	ln $< $@
 
 bin_PROGRAMS = Tanzanite
-Tanzanite_SOURCES = ./src/main.c ./src/tokens.c ./src/str.c ./src/ast.c ./src/lexer.l ./src/parser.y
+Tanzanite_SOURCES = ./src/main.c ./src/tokens.c ./src/str.c ./src/ast.c ./src/lexer.l ./src/parser.y ./src/str_builder.c ./src/codegen.c
 
 AM_YFLAGS = -d -Wcounterexamples
 AM_LFLAGS =
