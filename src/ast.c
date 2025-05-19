@@ -317,6 +317,30 @@ struct ast *type_cast_node(struct ast *expr, struct ast *type)
     return node;
 }
 
+struct ast *break_node()
+{
+    struct ast *node = calloc(1, sizeof(*node));
+    node->type = BREAK;
+
+    return node;
+}
+
+struct ast *next_node()
+{
+    struct ast *node = calloc(1, sizeof(*node));
+    node->type = NEXT;
+
+    return node;
+}
+
+struct ast *variadic_node()
+{
+    struct ast *node = calloc(1, sizeof(*node));
+    node->type = VARIADIC;
+
+    return node;
+}
+
 
 
 static void offset_text(int count)
@@ -622,7 +646,18 @@ static void _describe(struct ast *node, int spacing)
         offset_text(spacing);
         printf("}\n");
         break;
-
+    case NEXT:
+        offset_text(spacing);
+        printf("\e[36mNext\e[0m\n");
+        break;
+    case BREAK:
+        offset_text(spacing);
+        printf("\e[36mBreak\e[0m\n");
+        break;
+    case VARIADIC:
+        offset_text(spacing);
+        printf("\e[36mVariadic\e[0m\n");
+        break;
     }
 }
 

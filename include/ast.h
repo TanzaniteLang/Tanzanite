@@ -45,6 +45,9 @@ enum node_type {
     ASSIGNMENT,
 
     TYPE_CAST,
+    NEXT,
+    BREAK,
+    VARIADIC,
 };
 
 struct ast {
@@ -194,6 +197,9 @@ struct ast *field_access_node(struct ast *left, struct ast *right);
 struct ast *pointer_deref_node(struct ast *expr);
 struct ast *assign_node(char *op, struct ast *left, struct ast *right);
 struct ast *type_cast_node(struct ast *expr, struct ast *type);
+struct ast *break_node();
+struct ast *next_node();
+struct ast *variadic_node();
 
 void describe(struct ast *node);
 

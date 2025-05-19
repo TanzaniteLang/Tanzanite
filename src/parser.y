@@ -39,7 +39,7 @@ static struct ast *root;
 %token FUN_TOK SIZEOF_TOK BEGIN_TOK RETURN_TOK LOOP_TOK RESCUE_TOK THEN_TOK DO_TOK END_TOK WITH_TOK AUTO_TOK
 
 %left '+' INCREMENT_TOK '-' DECREMENT_TOK '*' '/' FLOOR_DIV_TOK '%' '~' '&' '|' '^' PIPE_FORWARD_TOK
-%left LEFT_SHIFT_TOK RIGHT_SHIFT_TOK '.' AS_TOK
+%left LEFT_SHIFT_TOK RIGHT_SHIFT_TOK '.' AS_TOK SPLAT_TOK
 %left EQL_TOK '!' NOT_EQL_TOK AND_TOK OR_TOK '<' LESS_THAN_EQL_TOK '>' GREATER_THAN_EQL_TOK
 %right '=' ADD_ASSIGN_TOK SUB_ASSIGN_TOK MUL_ASSIGN_TOK DIV_ASSIGN_TOK FLOOR_DIV_ASSIGN_TOK MOD_ASSIGN_TOK
 %right BIT_NOT_ASSIGN_TOK BIT_AND_ASSIGN_TOK BIT_OR_ASSIGN_TOK XOR_ASSIGN_TOK
@@ -119,9 +119,10 @@ body:
     ;
 
 fn_args:
-    vars                            { $$ = fn_arg_list_node(NULL, $1); }
-    | vars ',' fn_args              { $$ = fn_arg_list_node($3, $1);   }
-    |                               { $$ = NULL;                       }
+    vars                            { $$ = fn_arg_list_node(NULL, $1);              }
+    | SPLAT_TOK                     { $$ = fn_arg_list_node(NULL, variadic_node()); }
+    | vars ',' fn_args              { $$ = fn_arg_list_node($3, $1);                }
+    |                               { $$ = NULL;                                    }
     ;
 
 vars:
@@ -176,10 +177,12 @@ unary:
     ;
 
 expr:
-    expr1                                        { $$ = $1;                              }
-    | expr1 IF_TOK expr1                         { $$ = expr_if_node($1, $3, 0);         }
+    expr1                                            { $$ = $1;                          }
+    | BREAK_TOK                                      { $$ = break_node();                }
+    | NEXT_TOK                                       { $$ = next_node();                 }
+    | expr1 IF_TOK expr1                             { $$ = expr_if_node($1, $3, 0);     }
     | expr1 UNLESS_TOK expr1                         { $$ = expr_if_node($1, $3, 1);     }
-    | IF_TOK expr1 THEN_TOK expr1 ELSE_TOK expr1 { $$ = if_expr_node($2, $4, $6, 0);     }
+    | IF_TOK expr1 THEN_TOK expr1 ELSE_TOK expr1     { $$ = if_expr_node($2, $4, $6, 0); }
     | UNLESS_TOK expr1 THEN_TOK expr1 ELSE_TOK expr1 { $$ = if_expr_node($2, $4, $6, 1); }
     ;
 

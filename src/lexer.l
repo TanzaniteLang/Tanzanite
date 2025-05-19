@@ -48,6 +48,7 @@ int start_column = 0;
  /* Delimiters */
 "?"                 return '?'; 
 "."                 return '.';
+"..."               return SPLAT_TOK;
 ","                 return ',';
 ":"                 return ':';
 ";"                 return ';';
