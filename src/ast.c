@@ -141,6 +141,8 @@ struct ast *fn_decl_node(struct ast *type, struct ast *ident, struct ast *args, 
 }
 struct ast *fn_def_node(struct ast *type, struct ast *ident, struct ast *args, struct ast *body, bool immutable)
 {
+    if (body == NULL)
+        return fn_decl_node(type, ident, args, immutable);
     struct ast *node = calloc(1, sizeof(*node));
     node->type = FN_DEF;
     node->u.function_definition.return_type = type;
