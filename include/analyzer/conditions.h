@@ -1,8 +1,9 @@
 #ifndef __ANALYZER_CONDITIONS_H__
 #define __ANALYZER_CONDITIONS_H__
 
-#include <ast.h>
 #include <analyzer/type.h>
+
+#include <ast.h>
 
 struct analyzable_if {
     struct analyzable_type result_type;

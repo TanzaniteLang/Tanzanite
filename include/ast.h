@@ -5,6 +5,14 @@
 #include <str.h>
 #include <stdbool.h>
 
+#include <analyzer/value.h>
+#include <analyzer/variable.h>
+#include <analyzer/type.h>
+#include <analyzer/function.h>
+#include <analyzer/loops.h>
+#include <analyzer/operation.h>
+#include <analyzer/conditions.h>
+
 enum node_type {
     /* Parser nodes */
     PROGRAM,
@@ -43,7 +51,15 @@ enum node_type {
     VARIADIC,
 
     /* Analysis special nodes */
-
+    ANALYZE_VALUE = 256,
+    ANALYZE_OPERATION,
+    ANALYZE_VAR,
+    ANALYZE_FN,
+    ANALYZE_FN_CALL,
+    ANALYZE_IF,
+    ANALYZE_FOR,
+    ANALYZE_WHILE,
+    ANALYZE_TYPE_CAST,
 };
 
 struct ast {
@@ -157,6 +173,17 @@ struct ast {
             struct ast *expr;
             struct ast *type;
         } type_cast;
+
+        /* Analysis special nodes */
+        struct analyzable_value a_value;
+        struct analyzable_operation a_operation;
+        struct analyzable_variable a_var;
+        struct analyzable_function a_fn;
+        struct analyzable_call a_fn_call;
+        struct analyzable_if a_if;
+        struct analyzable_for a_for;
+        struct analyzable_while a_while;
+        struct analyzable_cast a_cast;
     } u;
 };
 

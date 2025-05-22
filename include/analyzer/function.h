@@ -2,11 +2,12 @@
 #define __ANALYZER_FUNCTION_H__
 
 #include <stdbool.h>
-#include <ast.h>
 #include <str.h>
 #include <stdint.h>
 
 #include <analyzer/type.h>
+
+struct ast;
 
 struct analyzable_function {
     struct analyzable_type return_type;
@@ -16,6 +17,7 @@ struct analyzable_function {
     struct analyzable_fn_arg *args;
     size_t args_count;
     bool immutable;
+    bool declaration;
     /* if true and fn call has more args than args_count, that's fine */
     bool variadic; 
     bool checked;

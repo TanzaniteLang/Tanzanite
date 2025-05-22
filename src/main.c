@@ -1,15 +1,18 @@
 #include <stdio.h>
 #include <ast.h>
-#include <str.h>
-#include <codegen.h>
+
+#include <analyzer.h>
+#include <analyzer/context.h>
 
 int main()
 {
+    struct analyzer_context ctx = {0};
+
     printf("TZN: Parsing...\n");
     struct ast *parsed = parse();
-    printf("TZN: AST codegen...\n");
-    struct str code = emit_c(parsed);
+    printf("TZN: AST transformation...\n");
+    struct ast *transformed = prepare(&ctx, parsed);
 
-    printf("Code:\n\n%s", code.str);
+    describe(transformed);
     return 0;
 }

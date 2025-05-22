@@ -351,6 +351,16 @@ static void offset_text(int count)
         putchar(' ');
 }
 
+static void print_a_type(struct analyzable_type t, int spacing)
+{
+    offset_text(spacing);
+    printf("Type: %s", t.identifier.str);
+    for (size_t i = 0; i < t.pointer_depth; i++)
+        putchar('*');
+    putchar(',');
+    putchar('\n');
+}
+
 static void _describe(struct ast *node, int spacing)
 {
     if (node == NULL) {
@@ -464,7 +474,7 @@ static void _describe(struct ast *node, int spacing)
         printf("}\n");
         break;
     case FN_DECL:
-        offset_text(spacing);
+offset_text(spacing);
         printf("\e[34mFn Decl\e[0m {\n");
         _describe(node->u.function_declaration.return_type, spacing + 2);
         _describe(node->u.variable_declaration.identifier, spacing + 2);
@@ -481,7 +491,7 @@ static void _describe(struct ast *node, int spacing)
         _describe(node->u.function_declaration.arg_list, spacing + 2);
         offset_text(spacing);
         printf(")\n");
-        spacing -= 2;
+spacing -= 2;
         offset_text(spacing);
         printf("}\n");
         break;
@@ -659,6 +669,94 @@ static void _describe(struct ast *node, int spacing)
     case VARIADIC:
         offset_text(spacing);
         printf("\e[36mVariadic\e[0m\n");
+        break;
+    case ANALYZE_VALUE:
+        offset_text(spacing);
+        printf("\e[35mAnalyze Value\e[0m {\n");
+        _describe(node->u.a_value.value, spacing + 2);
+        print_a_type(node->u.a_value.result, spacing + 2);
+        offset_text(spacing);
+        printf("}\n");
+        break;
+    case ANALYZE_OPERATION:
+        offset_text(spacing);
+        printf("\e[35mAnalyze Operation\e[0m: %s {\n", node->u.a_operation.operation);
+        _describe(node->u.a_operation.left, spacing + 2);
+        _describe(node->u.a_operation.right, spacing + 2);
+        print_a_type(node->u.a_operation.result_type, spacing + 2);
+        offset_text(spacing);
+        printf("}\n");
+        break;
+    case ANALYZE_VAR:
+        offset_text(spacing);
+        printf("\e[34mAnalyze Var\e[0m {\n");
+        print_a_type(node->u.a_var.type, spacing + 2);
+        offset_text(spacing + 2);
+        printf("Ident: %s,\n", node->u.a_var.identifier.str);
+
+        if (!node->u.a_var.is_declaration)
+            _describe(node->u.a_var.value, spacing + 2);
+
+        offset_text(spacing);
+        printf("}\n");
+        break;
+    case ANALYZE_FN:
+        offset_text(spacing);
+        printf("\e[34mAnalyze Fn\e[0m {\n");
+        print_a_type(node->u.a_fn.return_type, spacing + 2);
+        offset_text(spacing + 2);
+        printf("Name: %s,\n", node->u.a_fn.name.str);
+        spacing += 2;
+        offset_text(spacing);
+        printf("C Function: %s\n", node->u.a_fn.immutable ? "Yes" : "No");
+        offset_text(spacing);
+        printf("\e[32mArguments\e[0m (\n");
+        spacing += 2;
+        for (size_t i = 0; i < node->u.a_fn.args_count; i++) {
+            struct analyzable_fn_arg *arg = node->u.a_fn.args + i;
+            print_a_type(arg->type, spacing);
+            offset_text(spacing);
+            printf("Ident: %s,\n", arg->identifier.str);
+            _describe(arg->default_value, spacing);
+        }
+        spacing -= 2;
+        offset_text(spacing);
+        printf(")\n");
+        if (!node->u.a_fn.declaration) {
+            printf("Body\e[0m {\n");
+            spacing += 2;
+            _describe(node->u.a_fn.body, spacing);
+            spacing -= 2;
+            offset_text(spacing);
+            printf("}\n");
+        }
+        spacing -= 2;
+        offset_text(spacing);
+        printf("}\n");
+        break;
+    case ANALYZE_FN_CALL:
+        offset_text(spacing);
+        printf("\e[34mAnalyze Fn Call\e[0m {\n");
+        offset_text(spacing);
+        printf("Ident: %s,\n", node->u.a_fn_call.identifier.str);
+        spacing += 2;
+        offset_text(spacing);
+        printf("\e[32mArguments\e[0m (\n");
+        for (size_t i = 0; i < node->u.a_fn_call.args_count; i++) {
+            struct analyzable_call_arg *arg = node->u.a_fn_call.args + i;
+            _describe(arg->value, spacing + 2);
+        }
+        offset_text(spacing);
+        printf(")\n");
+        spacing -= 2;
+        offset_text(spacing);
+        printf("}\n");
+        break;
+    case ANALYZE_IF:
+    case ANALYZE_FOR:
+    case ANALYZE_WHILE:
+    case ANALYZE_TYPE_CAST:
+        fprintf(stderr, "NOT YET %d!\n", node->type);
         break;
     }
 }
