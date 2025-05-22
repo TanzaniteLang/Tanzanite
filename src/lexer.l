@@ -49,6 +49,7 @@ int start_column = 0;
 "?"                 return '?'; 
 "."                 return '.';
 "..."               return SPLAT_TOK;
+".."                return RANGE_TOK;
 ","                 return ',';
 ":"                 return ':';
 ";"                 return ';';

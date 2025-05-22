@@ -39,7 +39,7 @@ static struct ast *root;
 %token FUN_TOK SIZEOF_TOK BEGIN_TOK RETURN_TOK LOOP_TOK RESCUE_TOK THEN_TOK DO_TOK END_TOK WITH_TOK AUTO_TOK
 
 %left '+' INCREMENT_TOK '-' DECREMENT_TOK '*' '/' FLOOR_DIV_TOK '%' '~' '&' '|' '^' PIPE_FORWARD_TOK
-%left LEFT_SHIFT_TOK RIGHT_SHIFT_TOK '.' AS_TOK SPLAT_TOK
+%left LEFT_SHIFT_TOK RIGHT_SHIFT_TOK '.' AS_TOK SPLAT_TOK RANGE_TOK
 %left EQL_TOK '!' NOT_EQL_TOK AND_TOK OR_TOK '<' LESS_THAN_EQL_TOK '>' GREATER_THAN_EQL_TOK
 %right '=' ADD_ASSIGN_TOK SUB_ASSIGN_TOK MUL_ASSIGN_TOK DIV_ASSIGN_TOK FLOOR_DIV_ASSIGN_TOK MOD_ASSIGN_TOK
 %right BIT_NOT_ASSIGN_TOK BIT_AND_ASSIGN_TOK BIT_OR_ASSIGN_TOK XOR_ASSIGN_TOK
@@ -145,12 +145,13 @@ ident:
     ;
 
 value:
-    INT_TOK                         { $$ = int_node($1);    }
-    | FLOAT_TOK                     { $$ = float_node($1);  }
-    | STRING_TOK                    { $$ = string_node($1); }
-    | CHAR_TOK                      { $$ = char_node($1);   }
-    | BOOL_TOK                      { $$ = bool_node($1);   }
-    | ident                         { $$ = $1;              }
+    INT_TOK                         { $$ = int_node($1);       }
+    /* | INT_TOK RANGE_TOK INT_TOK     { $$ = range_node($1, $3); } */
+    | FLOAT_TOK                     { $$ = float_node($1);     }
+    | STRING_TOK                    { $$ = string_node($1);    }
+    | CHAR_TOK                      { $$ = char_node($1);      }
+    | BOOL_TOK                      { $$ = bool_node($1);      }
+    | ident                         { $$ = $1;                 }
     ;
 
 unary:

@@ -6,6 +6,7 @@
 #include <stdbool.h>
 
 enum node_type {
+    /* Parser nodes */
     PROGRAM,
     STATEMENT,
     BRACKETS,
@@ -40,6 +41,9 @@ enum node_type {
     NEXT,
     BREAK,
     VARIADIC,
+
+    /* Analysis special nodes */
+
 };
 
 struct ast {
