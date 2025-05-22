@@ -4,6 +4,8 @@
 #include <str.h>
 #include <stddef.h>
 
+struct ast;
+
 struct analyzable_type {
     struct str identifier;
     size_t pointer_depth;
@@ -11,8 +13,8 @@ struct analyzable_type {
 };
 
 struct analyzable_cast {
-    struct analyzable_type result;
     struct analyzable_type target;
+    struct ast *value;
 };
 
 #endif

@@ -126,9 +126,10 @@ fn_args:
     ;
 
 vars:
-    ident ':' AUTO_TOK '=' expr     { $$ = var_def_node(NULL, $1, $5); }
-    | ident ':' type                { $$ = var_decl_node(type_node($3), $1); }
+    ident ':' AUTO_TOK '=' expr     { $$ = var_def_node(NULL, $1, $5);          }
+    | ident ':' type                { $$ = var_decl_node(type_node($3), $1);    }
     | ident ':' type '=' expr       { $$ = var_def_node(type_node($3), $1, $5); }
+    | assignment                    { $$ = $1;                                  }
     ;
 
 type:
@@ -192,19 +193,19 @@ field_access:
     ;
 
 assignment:
-    expr1 '=' expr1                         { $$ = assign_node("=", $1, $3);   }
-    | expr1 ADD_ASSIGN_TOK expr1            { $$ = assign_node("+=", $1, $3);  }
-    | expr1 SUB_ASSIGN_TOK expr1            { $$ = assign_node("-=", $1, $3);  }
-    | expr1 MUL_ASSIGN_TOK expr1            { $$ = assign_node("*=", $1, $3);  }
-    | expr1 DIV_ASSIGN_TOK expr1            { $$ = assign_node("/=", $1, $3);  }
-    | expr1 FLOOR_DIV_ASSIGN_TOK expr1      { $$ = assign_node("//=", $1, $3); }
-    | expr1 MOD_ASSIGN_TOK expr1            { $$ = assign_node("&=", $1, $3);  }
-    | expr1 LEFT_SHIFT_ASSIGN_TOK expr1     { $$ = assign_node("<<=", $1, $3); }
-    | expr1 RIGHT_SHIFT_ASSIGN_TOK expr1    { $$ = assign_node(">>=", $1, $3); }
-    | expr1 BIT_NOT_ASSIGN_TOK expr1        { $$ = assign_node("~=", $1, $3);  }
-    | expr1 BIT_AND_ASSIGN_TOK expr1        { $$ = assign_node("&=", $1, $3);  }
-    | expr1 BIT_OR_ASSIGN_TOK expr1         { $$ = assign_node("|=", $1, $3);  }
-    | expr1 XOR_ASSIGN_TOK expr1            { $$ = assign_node("^=", $1, $3);  }
+    ident '=' expr1                         { $$ = assign_node("=", $1, $3);   }
+    | ident ADD_ASSIGN_TOK expr1            { $$ = assign_node("+=", $1, $3);  }
+    | ident SUB_ASSIGN_TOK expr1            { $$ = assign_node("-=", $1, $3);  }
+    | ident MUL_ASSIGN_TOK expr1            { $$ = assign_node("*=", $1, $3);  }
+    | ident DIV_ASSIGN_TOK expr1            { $$ = assign_node("/=", $1, $3);  }
+    | ident FLOOR_DIV_ASSIGN_TOK expr1      { $$ = assign_node("//=", $1, $3); }
+    | ident MOD_ASSIGN_TOK expr1            { $$ = assign_node("&=", $1, $3);  }
+    | ident LEFT_SHIFT_ASSIGN_TOK expr1     { $$ = assign_node("<<=", $1, $3); }
+    | ident RIGHT_SHIFT_ASSIGN_TOK expr1    { $$ = assign_node(">>=", $1, $3); }
+    | ident BIT_NOT_ASSIGN_TOK expr1        { $$ = assign_node("~=", $1, $3);  }
+    | ident BIT_AND_ASSIGN_TOK expr1        { $$ = assign_node("&=", $1, $3);  }
+    | ident BIT_OR_ASSIGN_TOK expr1         { $$ = assign_node("|=", $1, $3);  }
+    | ident XOR_ASSIGN_TOK expr1            { $$ = assign_node("^=", $1, $3);  }
     ;
 
 expr1:
@@ -228,7 +229,6 @@ expr1:
     | expr1 AND_TOK expr1             { $$ = operation_node("&&", $1, $3);   }
     | expr1 OR_TOK expr1              { $$ = operation_node("||", $1, $3);   }
     | expr1 PIPE_FORWARD_TOK expr1    { $$ = operation_node("|>", $1, $3);   }
-    | assignment                      { $$ = $1;                             }
     | ident '(' call_args ')'         { $$ = fn_call_node($1, $3);           }
     | field_access '(' call_args ')'  { $$ = fn_call_node($1, $3);           }
     | '(' expr ')'                    { $$ = bracket_node($2);               }

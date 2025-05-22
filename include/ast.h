@@ -224,6 +224,8 @@ struct ast *break_node();
 struct ast *next_node();
 struct ast *variadic_node();
 
+struct ast *dup_node(struct ast *node);
+
 void describe(struct ast *node);
 
 #endif

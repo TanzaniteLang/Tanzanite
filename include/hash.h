@@ -92,7 +92,7 @@ bool name##_resize(struct name *hm) {\
         if (hm->buckets[i].state != HASH_VALID)\
             continue;\
         const char *key = hm->buckets[i].key;\
-        uint32_t it = djb2(key, strlen(key)) % hm->cap;\
+        uint32_t it = djb2(key, strlen(key)) % new_cap;\
         while (new_buckets[it].state == HASH_VALID)\
             it = (it + 1) % new_cap;\
         new_buckets[it] = hm->buckets[i];\

@@ -343,6 +343,14 @@ struct ast *variadic_node()
     return node;
 }
 
+struct ast *dup_node(struct ast *n)
+{
+    struct ast *node = calloc(1, sizeof(*node));
+    *node = *n;
+
+    return node;
+}
+
 
 
 static void offset_text(int count)
@@ -752,10 +760,17 @@ spacing -= 2;
         offset_text(spacing);
         printf("}\n");
         break;
+    case ANALYZE_TYPE_CAST:
+        offset_text(spacing);
+        printf("\e[31mAnalyze Type Cast\e[0m {\n");
+        print_a_type(node->u.a_cast.target, spacing + 2);
+        _describe(node->u.a_cast.value, spacing + 2);
+        offset_text(spacing);
+        printf("}\n");
+        break;
     case ANALYZE_IF:
     case ANALYZE_FOR:
     case ANALYZE_WHILE:
-    case ANALYZE_TYPE_CAST:
         fprintf(stderr, "NOT YET %d!\n", node->type);
         break;
     }
