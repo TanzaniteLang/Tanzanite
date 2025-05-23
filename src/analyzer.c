@@ -39,8 +39,11 @@ static const struct builtin_types types[] = {
 };
 
 static void _prepare_global_statement(struct analyzer_context *ctx, struct ast *stmt);
+static void _prepare_body_statements(struct analyzer_context *ctx, struct ast *body);
 static struct ast _prepare_vars(struct analyzer_context *ctx, struct ast *var, bool fn_arg);
 static struct ast _prepare_fns(struct analyzer_context *ctx, struct ast *fun);
+static struct ast _prepare_conds(struct analyzer_context *ctx, struct ast *cond);
+static struct ast _prepare_loops(struct analyzer_context *ctx, struct ast *loop);
 static struct ast *_prepare_expr(struct analyzer_context *ctx, struct ast *expr);
 static struct analyzable_type _get_type(struct analyzer_context *ctx, struct ast *type);
 static struct analyzable_type _just_cast(struct analyzable_type current, struct analyzable_type target);
@@ -70,17 +73,89 @@ struct ast *prepare(struct analyzer_context *ctx, struct ast *to_process)
 
     struct ast *iter = to_process->u.program;
     while (iter != NULL) {
-        if (iter->type != STATEMENT) {
-            fprintf(stderr, "expected STATEMENT, got %d!\n", iter->type);
-            abort();
-        }
-
         _prepare_global_statement(ctx, iter->u.statement.current);
-
         iter = iter->u.statement.next;
     }
 
+    uint32_t it = function_store_find(&ctx->functions, "main");
+    if (!hash_exists(&ctx->functions, it)) {
+        fprintf(stderr, "entrypoint is missing function main!\n");
+        abort();
+    }
+    struct analyzable_function *main_fn = &hash_value(&ctx->functions, it);
+    iter = main_fn->body;
+    var_store_push_frame(&ctx->variables);
+    while (iter != NULL) {
+        _prepare_body_statements(ctx, iter->u.statement.current);
+        iter = iter->u.statement.next;
+    }
+    main_fn->checked = true;
+    var_store_pop_frame(&ctx->variables);
+    /* TODO: requested functions to check */
+    var_store_pop_frame(&ctx->variables);
+
     return to_process;
+}
+
+static void _prepare_body_statements(struct analyzer_context *ctx, struct ast *body)
+{
+    switch (body->type) {
+    case ASSIGNMENT:
+    case VAR_DECL:
+    case VAR_DEF:
+        *body = _prepare_vars(ctx, body, false);
+        break;
+    case BRACKETS:
+    case INT:
+    case FLOAT:
+    case IDENTIFIER:
+    case CHAR:
+    case BOOL:
+    case STRING:
+    case UNARY:
+    case POINTER_DEREF:
+    case OPERATION:
+    case TYPE_CAST:
+    case IF_EXPR:
+    case FN_CALL:
+    case FIELD_ACCESS:
+        *body = *_prepare_expr(ctx, body);
+        break;
+    case EXPR_IF:
+    case IF_COND:
+        *body = _prepare_conds(ctx, body);
+        break;
+    case FOR:
+    case WHILE:
+        *body = _prepare_loops(ctx, body);
+        break;
+    case NEXT:
+    case BREAK:
+        break;
+    case FN_DECL:
+    case FN_DEF:
+    default:
+        fprintf(stderr, "did not expect %d in function scope!\n", body->type);
+        abort();
+    }
+}
+
+static void _prepare_global_statement(struct analyzer_context *ctx, struct ast *stmt)
+{
+    switch (stmt->type) {
+    case ASSIGNMENT:
+    case VAR_DECL:
+    case VAR_DEF:
+        *stmt = _prepare_vars(ctx, stmt, false);
+        break;
+    case FN_DECL:
+    case FN_DEF:
+        *stmt = _prepare_fns(ctx, stmt);
+        break;
+    default:
+        fprintf(stderr, "did not expect %d in global scope!\n", stmt->type);
+        abort();
+    }
 }
 
 static struct ast _prepare_vars(struct analyzer_context *ctx, struct ast *var, bool fn_arg)
@@ -137,6 +212,8 @@ skip2:
             return *var;
         }
 skip3:
+        if (strcmp(var->u.assignment.op, "=") != 0)
+            return *var;
 
         variable.u.a_var.identifier = var->u.assignment.left->u.identifier;
         variable.u.a_var.value = _prepare_expr(ctx, var->u.assignment.right);
@@ -257,6 +334,16 @@ static struct ast _prepare_fns(struct analyzer_context *ctx, struct ast *fun)
     }
 
     return fn;
+}
+
+static struct ast _prepare_conds(struct analyzer_context *ctx, struct ast *cond)
+{
+
+}
+
+static struct ast _prepare_loops(struct analyzer_context *ctx, struct ast *loop)
+{
+
 }
 
 static struct analyzable_type _get_type(struct analyzer_context *ctx, struct ast *type)
@@ -551,24 +638,6 @@ assign_bool:
     }
 
     return expr;
-}
-
-static void _prepare_global_statement(struct analyzer_context *ctx, struct ast *stmt)
-{
-    switch (stmt->type) {
-    case ASSIGNMENT:
-    case VAR_DECL:
-    case VAR_DEF:
-        *stmt = _prepare_vars(ctx, stmt, false);
-        break;
-    case FN_DECL:
-    case FN_DEF:
-        *stmt = _prepare_fns(ctx, stmt);
-        break;
-    default:
-        fprintf(stderr, "did not expect %d in global scope!\n", stmt->type);
-        abort();
-    }
 }
 
 static bool _expect_type(struct analyzable_type current, const char *name)
