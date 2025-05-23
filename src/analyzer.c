@@ -110,18 +110,22 @@ struct ast *prepare(struct analyzer_context *ctx, struct ast *to_process)
         for (size_t i = 0; i < fun->args_count; i++) {
             struct analyzable_fn_arg *arg = fun->args + i;
             struct analyzable_variable *var = var_store_insert(&ctx->variables, arg->identifier.str);
+
             var->type = arg->type;
             var->identifier = arg->identifier;
             var->is_declaration = true;
+
             if (arg->default_value != NULL) {
                 var->is_declaration = false;
                 var->value = arg->default_value;
             }
         }
+
         while (iter != NULL) {
             _prepare_body_statements(ctx, iter->u.statement.current);
             iter = iter->u.statement.next;
         }
+
         var_store_pop_frame(&ctx->variables);
     }
     var_store_pop_frame(&ctx->variables);
@@ -263,7 +267,6 @@ skip3:
         variable.u.a_var.value = _prepare_expr(ctx, var->u.assignment.right);
         variable.u.a_var.type = _get_type(ctx, var->u.assignment.right);
         variable.u.a_var.is_declaration = false;
-
     }
 
     if (!fn_arg) {
@@ -400,8 +403,10 @@ static struct ast _prepare_conds(struct analyzer_context *ctx, struct ast *cond)
             abort();
         }
         c.u.a_if.body = cond->u.if_statement.body;
+
         if (c.u.a_if.body != NULL)
             _prepare_body(ctx, c.u.a_if.body);
+
         c.u.a_if.unless = cond->u.if_statement.unless;
 
         size_t count = 0;
@@ -461,6 +466,7 @@ static struct ast _prepare_loops(struct analyzer_context *ctx, struct ast *loop)
     } else if (loop->type == FOR) {
         l.type = ANALYZE_FOR;
         l.u.a_for.expr = loop->u.for_statement.expr;
+
         if (l.u.a_for.expr->type != RANGE) {
             fprintf(stderr, "for loop can (rn) take only range!\n");
             abort();
@@ -499,6 +505,7 @@ static struct ast _prepare_loops(struct analyzer_context *ctx, struct ast *loop)
         if (l.u.a_for.body != NULL) {
             struct ast *iter = l.u.a_for.body;
             var_store_push_frame(&ctx->variables);
+
             for (size_t i = 0; i < l.u.a_for.payload_count; i++) {
                 struct analyzable_payload *ptr = l.u.a_for.payloads + i;
                 struct var_store_res tmp_it = var_store_find(&ctx->variables, ptr->identifier.str);
@@ -512,6 +519,7 @@ static struct ast _prepare_loops(struct analyzer_context *ctx, struct ast *loop)
                 it->value = NULL;
                 it->is_declaration = false;
             }
+
             while (iter != NULL) {
                 _prepare_body_statements(ctx, iter->u.statement.current);
                 iter = iter->u.statement.next;

@@ -9,10 +9,14 @@
 
 static bool _emit_c(struct str_builder *b, struct ast *a);
 static void _emit_body(struct str_builder *b, struct ast *body);
-static void _emit_pointer(struct str_builder *b, struct ast *ptr);
+static void _emit_fn(struct str_builder *b, struct analyzable_function *fn);
+static void _emit_type(struct str_builder *b, struct analyzable_type *type);
+static void _emit_type_cast(struct str_builder *b, struct analyzable_type *type);
+static void _emit_fn_call(struct str_builder *b, struct analyzable_call *call);
+static void _emit_for(struct str_builder *b, struct analyzable_for *loop);
+
 static void _emit_fn_decl(struct str_builder *b, struct ast *decl);
 static void _emit_fn_def(struct str_builder *b, struct ast *def);
-static void _emit_fn_call(struct str_builder *b, struct ast *call);
 static void _emit_if(struct str_builder *b, struct ast *cond);
 static void _emit_elsif(struct str_builder *b, struct ast *cond);
 
@@ -53,7 +57,6 @@ static bool _emit_c(struct str_builder *b, struct ast *a)
     case STRING:
         str_builder_printf(b, "\"%s\"", a->u.string.str);
         break;
-
     case BRACKETS:
         str_builder_append_char(b, '(');
         _emit_c(b, a->u.bracket);
@@ -63,84 +66,62 @@ static bool _emit_c(struct str_builder *b, struct ast *a)
         str_builder_printf(b, "%s", a->u.unary.op);
         _emit_c(b, a->u.unary.value);
         break;
-    case OPERATION:
-        if (strcmp(a->u.operation.op, "//") == 0) {
-            fprintf(stderr, "// not yet supported!");
-            abort();
-        } else if (strcmp(a->u.operation.op, "|>") == 0) {
-            fprintf(stderr, "|> not yet supported!");
-            abort();
-        } else {
-            _emit_c(b, a->u.operation.left);
-            str_builder_printf(b, " %s ", a->u.operation.op);
-            _emit_c(b, a->u.operation.right);
-        }
+    case ANALYZE_VALUE:
+        _emit_type_cast(b, &a->u.a_value.result);
+        _emit_c(b, a->u.a_value.value);
         break;
-    case TYPE_NODE:
-        _emit_c(b, a->u.type);
-        break;
-    case POINTER:
-        _emit_pointer(b, a);
-        break;
-    case VAR_DECL:
-        _emit_c(b, a->u.variable_declaration.type);
-        _emit_c(b, a->u.variable_declaration.identifier);
-        break;
-    case VAR_DEF:
-        _emit_c(b, a->u.variable_definition.type);
-        _emit_c(b, a->u.variable_definition.identifier);
-        str_builder_append_cstr(b, " = ");
-        _emit_c(b, a->u.variable_definition.value);
-        break;
-    case FN_DECL:
-        _emit_fn_decl(b, a);
+    case ANALYZE_FN:
+        _emit_fn(b, &a->u.a_fn);
         return false;
         break;
-    case VARIADIC:
-        str_builder_append_cstr(b, "...");
+    case ANALYZE_FN_CALL:
+        _emit_type_cast(b, &a->u.a_fn_call.result_type);
+        _emit_fn_call(b, &a->u.a_fn_call);
         break;
-    case FN_DEF:
-        _emit_fn_def(b, a);
+    case ANALYZE_OPERATION:
+        _emit_type_cast(b, &a->u.a_operation.result_type);
+        _emit_c(b, a->u.a_operation.left);
+        str_builder_append_cstr(b, a->u.a_operation.operation);
+        _emit_c(b, a->u.a_operation.right);
+        break;
+    case ANALYZE_TYPE_CAST:
+        _emit_type_cast(b, &a->u.a_cast.target);
+        _emit_c(b, a->u.a_cast.value);
+        break;
+    case ANALYZE_FOR:
+        _emit_for(b, &a->u.a_for);
         return false;
         break;
-    case FN_CALL:
-        _emit_fn_call(b, a);
-        break;
-    case ASSIGNMENT:
-        _emit_c(b, a->u.assignment.left);
-        str_builder_printf(b, " %s ", a->u.assignment.op);
-        _emit_c(b, a->u.assignment.right);
-        break;
-    case IF_COND:
-        _emit_if(b, a);
-        if (a->u.if_statement.next != NULL)
-            _emit_c(b, a->u.if_statement.next);
-        return false;
-        break;
-    case ELSIF_COND:
-        _emit_elsif(b, a);
-        if (a->u.if_statement.next != NULL)
-            _emit_c(b, a->u.if_statement.next);
-        return false;
-        break;
-    case ELSE_COND:
-        str_builder_append_cstr(b, "else {\n");
-        _emit_body(b, a->u.else_statement);
-        str_builder_append_cstr(b, "}\n");
-        return false;
-        break;
+    case PROGRAM:
+    case STATEMENT:
     case IDENTIFIER_CHAIN:
+    case OPERATION:
+    case VAR_DECL:
+    case VAR_DEF:
+    case TYPE_NODE:
+    case POINTER:
+    case FN_DECL:
+    case FN_DEF:
     case FN_ARG:
+    case FN_CALL:
+    case IF_COND:
     case IF_EXPR:
     case EXPR_IF:
+    case ELSIF_COND:
+    case ELSE_COND:
     case FOR:
     case WHILE:
     case FIELD_ACCESS:
     case POINTER_DEREF:
+    case ASSIGNMENT:
     case TYPE_CAST:
     case NEXT:
     case BREAK:
-    default:
+    case VARIADIC:
+    case RANGE:
+    case ANALYZE_VAR:
+    case ANALYZE_IF:
+    case ANALYZE_WHILE:
         fprintf(stderr, "Unhandled node type %d!\n", a->type);
         abort();
     }
@@ -178,19 +159,82 @@ static void _emit_if(struct str_builder *b, struct ast *cond)
         str_builder_append_char(b, '\n');
 }
 
-static void _emit_fn_call(struct str_builder *b, struct ast *call)
+
+
+
+
+static void _emit_fn(struct str_builder *b, struct analyzable_function *fn)
 {
-    _emit_c(b, call->u.function_call.ident);
-    str_builder_append_char(b, '(');
-    struct ast *arg_iter = call->u.function_call.first_arg;
-    while (arg_iter != NULL) {
-        _emit_c(b, arg_iter->u.function_argument.current);
-        arg_iter = arg_iter->u.function_argument.next;
-        if (arg_iter != NULL)
+    _emit_type(b, &fn->return_type);
+    str_builder_printf(b, " %s(",  fn->name.str);
+    for (size_t i = 0; i < fn->args_count; i++) {
+        struct analyzable_fn_arg *arg = fn->args + i;
+        _emit_type(b, &arg->type);
+        str_builder_printf(b, " %s",  arg->identifier.str);
+        if (i + 1 < fn->args_count || fn->variadic)
             str_builder_append_cstr(b, ", ");
     }
+    if (fn->variadic)
+        str_builder_append_cstr(b, "...");
+
+    str_builder_append_char(b, ')');
+
+    if (fn->declaration) {
+        str_builder_append_cstr(b, ";\n\n");
+        return;
+    }
+    str_builder_append_cstr(b, "\n{\n");
+    _emit_body(b, fn->body);
+    str_builder_append_cstr(b, "}\n\n");
+}
+
+static void _emit_type(struct str_builder *b, struct analyzable_type *type)
+{
+    str_builder_append_cstr(b, type->identifier.str);
+    for (size_t i = 0; i < type->pointer_depth; i++)
+        str_builder_append_char(b, '*');
+}
+
+static void _emit_type_cast(struct str_builder *b, struct analyzable_type *type)
+{
+    str_builder_append_char(b, '(');
+    _emit_type(b, type);
     str_builder_append_char(b, ')');
 }
+
+static void _emit_fn_call(struct str_builder *b, struct analyzable_call *call)
+{
+    str_builder_append_cstr(b, call->identifier.str);
+    str_builder_append_char(b, '(');
+    for (size_t i = 0; i < call->args_count; i++) {
+        struct analyzable_call_arg *arg = call->args + i;
+        _emit_c(b, arg->value);
+        if (i + 1 < call->args_count)
+            str_builder_append_cstr(b, ", ");
+    }
+
+    str_builder_append_char(b, ')');
+}
+
+static void _emit_for(struct str_builder *b, struct analyzable_for *loop)
+{
+    if (loop->payload_count == 1 && loop->expr->type == RANGE) {
+        struct analyzable_type t = loop->payloads[0].type;
+        str_builder_append_cstr(b, "for (");
+        _emit_type(b, &t);
+        str_builder_printf(b, " %s = %ld;", loop->payloads[0].identifier.str, loop->expr->u.range.start);
+        str_builder_printf(b, " %s <= %ld;", loop->payloads[0].identifier.str, loop->expr->u.range.end);
+        str_builder_printf(b, " %s++) {\n", loop->payloads[0].identifier.str);
+        _emit_body(b, loop->body);
+        str_builder_append_cstr(b, "}\n");
+    } else {
+        fprintf(stderr, "XXX: very limited, only to range with payload!\n");
+        abort();
+    }
+}
+
+
+
 
 static void _emit_fn_def(struct str_builder *b, struct ast *def)
 {
@@ -207,21 +251,6 @@ static void _emit_fn_def(struct str_builder *b, struct ast *def)
     str_builder_append_cstr(b, ")\n{\n");
     _emit_body(b, def->u.function_definition.body);
     str_builder_append_cstr(b, "}\n\n");
-}
-
-static void _emit_fn_decl(struct str_builder *b, struct ast *decl)
-{
-    _emit_c(b, decl->u.function_definition.return_type);
-    _emit_c(b, decl->u.function_definition.ident);
-    str_builder_append_char(b, '(');
-    struct ast *arg_iter = decl->u.function_definition.arg_list;
-    while (arg_iter != NULL) {
-        _emit_c(b, arg_iter->u.function_argument.current);
-        arg_iter = arg_iter->u.function_argument.next;
-        if (arg_iter != NULL)
-            str_builder_append_cstr(b, ", ");
-    }
-    str_builder_append_cstr(b, ");\n\n");
 }
 
 static void _emit_pointer(struct str_builder *b, struct ast *ptr)
