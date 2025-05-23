@@ -39,11 +39,14 @@ static const struct builtin_types types[] = {
 };
 
 static void _prepare_global_statement(struct analyzer_context *ctx, struct ast *stmt);
-static struct ast _prepare_vars(struct analyzer_context *ctx, struct ast *var);
+static struct ast _prepare_vars(struct analyzer_context *ctx, struct ast *var, bool fn_arg);
+static struct ast _prepare_fns(struct analyzer_context *ctx, struct ast *fun);
 static struct ast *_prepare_expr(struct analyzer_context *ctx, struct ast *expr);
 static struct analyzable_type _get_type(struct analyzer_context *ctx, struct ast *type);
 static struct analyzable_type _just_cast(struct analyzable_type current, struct analyzable_type target);
 static struct analyzable_type _attempt_cast(struct analyzable_type current, struct analyzable_type target);
+static bool _expect_type(struct analyzable_type current, const char *name);
+static void _assign_args_to_fn(struct analyzer_context *ctx, struct ast *fn, struct ast *first_arg);
 
 struct ast *prepare(struct analyzer_context *ctx, struct ast *to_process)
 {
@@ -62,6 +65,8 @@ struct ast *prepare(struct analyzer_context *ctx, struct ast *to_process)
         abort();
     }
 
+    var_store_push_frame(&ctx->variables);
+
     struct ast *iter = to_process->u.program;
     while (iter != NULL) {
         if (iter->type != STATEMENT) {
@@ -77,53 +82,118 @@ struct ast *prepare(struct analyzer_context *ctx, struct ast *to_process)
     return to_process;
 }
 
-static struct ast _prepare_vars(struct analyzer_context *ctx, struct ast *var)
+static struct ast _prepare_vars(struct analyzer_context *ctx, struct ast *var, bool fn_arg)
 {
-    struct ast v = {0};
-    v.type = ANALYZE_VAR;
+    struct ast variable = {0};
+    variable.type = ANALYZE_VAR;
 
     if (var->type == VAR_DECL) {
-        v.u.a_var.identifier = var->u.variable_declaration.identifier->u.identifier;
-        v.u.a_var.type = _get_type(ctx, var->u.variable_declaration.type);
-        v.u.a_var.is_declaration = true;
+        variable.u.a_var.identifier = var->u.variable_declaration.identifier->u.identifier;
+        variable.u.a_var.type = _get_type(ctx, var->u.variable_declaration.type);
+        variable.u.a_var.is_declaration = true;
     } else if (var->type == VAR_DEF) {
-        v.u.a_var.identifier = var->u.variable_definition.identifier->u.identifier;
+        variable.u.a_var.identifier = var->u.variable_definition.identifier->u.identifier;
         if (var->u.variable_definition.type == NULL) {
             struct ast *prepared = _prepare_expr(ctx, var->u.variable_definition.value);
-            v.u.a_var.type = _get_type(ctx, prepared);
-            v.u.a_var.value = prepared;
+            variable.u.a_var.type = _get_type(ctx, prepared);
+            variable.u.a_var.value = prepared;
         } else {
-            v.u.a_var.type = _get_type(ctx, var->u.variable_definition.type);
+            variable.u.a_var.type = _get_type(ctx, var->u.variable_definition.type);
             struct ast *prepared = _prepare_expr(ctx, var->u.variable_definition.value);
-            v.u.a_var.type = _attempt_cast(_get_type(ctx, prepared), v.u.a_var.type);
-            v.u.a_var.value = prepared;
+            variable.u.a_var.type = _attempt_cast(_get_type(ctx, prepared), variable.u.a_var.type);
+            variable.u.a_var.value = prepared;
         }
-        v.u.a_var.is_declaration = false;
+        variable.u.a_var.is_declaration = false;
     } else if (var->type == ASSIGNMENT) {
         if (var->u.assignment.left->type != IDENTIFIER) {
             fprintf(stderr, "expected IDENT on left side of assignment!\n");
             abort();
         }
 
-        uint32_t it = var_store_find(&ctx->variables, var->u.assignment.left->u.identifier.str);
-        if (hash_exists(&ctx->variables, it)) {
+        if (fn_arg)
+            goto skip;
+
+        struct var_store_res it = var_store_find(&ctx->variables, var->u.assignment.left->u.identifier.str);
+        if (it.found) {
             fprintf(stderr, "variable %s already exists!\n", var->u.assignment.left->u.identifier.str);
             abort();
         }
+skip:
 
-        it = var_store_insert(&ctx->variables, var->u.assignment.left->u.identifier.str);
-
-        v.u.a_var.identifier = var->u.assignment.left->u.identifier;
-        v.u.a_var.value = _prepare_expr(ctx, var->u.assignment.right);
-        v.u.a_var.type = _get_type(ctx, var->u.assignment.right);
-        v.u.a_var.is_declaration = false;
+        variable.u.a_var.identifier = var->u.assignment.left->u.identifier;
+        variable.u.a_var.value = _prepare_expr(ctx, var->u.assignment.right);
+        variable.u.a_var.type = _get_type(ctx, var->u.assignment.right);
+        variable.u.a_var.is_declaration = false;
 
     }
 
-    uint32_t it = var_store_insert(&ctx->variables, v.u.a_var.identifier.str);
-    hash_value(&ctx->variables, it) = v.u.a_var;
+    if (!fn_arg) {
+        struct analyzable_variable *it = var_store_insert(&ctx->variables, variable.u.a_var.identifier.str);
+        *it = variable.u.a_var;
+    }
 
-    return v;
+    return variable;
+}
+
+static struct ast _prepare_fns(struct analyzer_context *ctx, struct ast *fun)
+{
+    struct ast fn = {0};
+    fn.type = ANALYZE_FN;
+
+    if (fun->type == FN_DECL) {
+        uint32_t it = function_store_find(&ctx->functions, fun->u.function_declaration.ident->u.identifier.str);
+        if (hash_exists(&ctx->functions, it)) {
+            struct analyzable_function f = hash_value(&ctx->functions, it);
+            fprintf(stderr, "function %s has already been %s!\n", f.name.str, f.declaration ? "declared" : "defined");
+            abort();
+        }
+
+        fn.u.a_fn.return_type = _get_type(ctx, fun->u.function_declaration.return_type);
+        fn.u.a_fn.name = fun->u.function_declaration.ident->u.identifier;
+        fn.u.a_fn.body = NULL;
+
+        /* handles args and also handles variadic */
+        _assign_args_to_fn(ctx, &fn, fun->u.function_declaration.arg_list);
+
+        fn.u.a_fn.immutable = fun->u.function_declaration.immutable;
+        fn.u.a_fn.declaration = true;
+        fn.u.a_fn.checked = false;
+
+        it = function_store_insert(&ctx->functions, fn.u.a_fn.name.str);
+        hash_value(&ctx->functions, it) = fn.u.a_fn;
+    } else if (fun->type == FN_DEF) {
+        uint32_t it = function_store_find(&ctx->functions, fun->u.function_definition.ident->u.identifier.str);
+        if (hash_exists(&ctx->functions, it)) {
+            struct analyzable_function f = hash_value(&ctx->functions, it);
+            if (f.declaration == false) {
+                fprintf(stderr, "function %s has already been %s!\n", f.name.str, f.declaration ? "declared" : "defined");
+                abort();
+            }
+        }
+
+        fn.u.a_fn.return_type = _get_type(ctx, fun->u.function_definition.return_type);
+        fn.u.a_fn.name = fun->u.function_definition.ident->u.identifier;
+        fn.u.a_fn.body = fun->u.function_definition.body;
+
+        /* handles args and also handles variadic */
+        _assign_args_to_fn(ctx, &fn, fun->u.function_definition.arg_list);
+
+        fn.u.a_fn.immutable = fun->u.function_definition.immutable;
+        fn.u.a_fn.declaration = false;
+        fn.u.a_fn.checked = false;
+
+        if (hash_exists(&ctx->functions, it)) {
+            struct analyzable_function f = hash_value(&ctx->functions, it);
+            /* compare signatures */
+        }
+
+        if (!hash_exists(&ctx->functions, it))
+            it = function_store_insert(&ctx->functions, fn.u.a_fn.name.str);
+
+        hash_value(&ctx->functions, it) = fn.u.a_fn;
+    }
+
+    return fn;
 }
 
 static struct analyzable_type _get_type(struct analyzer_context *ctx, struct ast *type)
@@ -163,6 +233,8 @@ start:
         return type->u.a_operation.result_type;
     case ANALYZE_TYPE_CAST:
         return type->u.a_cast.target;
+    case ANALYZE_IF:
+        return type->u.a_if.result_type;
     case BRACKETS:
         return _get_type(ctx, type->u.bracket);
     default:
@@ -190,6 +262,9 @@ static struct analyzable_type _attempt_cast(struct analyzable_type current, stru
 
 static struct ast *_prepare_expr(struct analyzer_context *ctx, struct ast *expr)
 {
+    if (expr == NULL)
+        return NULL;
+
     switch (expr->type) {
     case BRACKETS:
         expr->u.bracket = _prepare_expr(ctx, expr->u.bracket);
@@ -254,13 +329,13 @@ static struct ast *_prepare_expr(struct analyzer_context *ctx, struct ast *expr)
         struct analyzable_value v = {0};
 
         v.value = dup_node(expr);
-        uint32_t it = var_store_find(&ctx->variables, expr->u.identifier.str);
-        if (it == ctx->variables.cap) {
+        struct var_store_res it = var_store_find(&ctx->variables, expr->u.identifier.str);
+        if (!it.found) {
             fprintf(stderr, "variable %s could not be found!\n", expr->u.identifier.str);
             abort();
         }
 
-        v.result = hash_value(&ctx->variables, it).type;
+        v.result = it.payload.type;
         expr->type = ANALYZE_VALUE;
         expr->u.a_value = v;
         }
@@ -349,6 +424,16 @@ static struct ast *_prepare_expr(struct analyzer_context *ctx, struct ast *expr)
         } else if (strcmp(expr->u.operation.op, "|>") == 0) {
             fprintf(stderr, "|> is not supported yet!\n");
             abort();
+        } else if (strcmp(expr->u.operation.op, "==") == 0)
+            goto assign_bool;
+        else if (strcmp(expr->u.operation.op, "!=") == 0)
+            goto assign_bool;
+        else if (strcmp(expr->u.operation.op, "&&") == 0)
+            goto assign_bool;
+        else if (strcmp(expr->u.operation.op, "||") == 0) {
+assign_bool:
+            uint32_t it = type_store_find(&ctx->types, "bool");
+            o.result_type = hash_value(&ctx->types, it);
         }
         o.left = expr->u.operation.left;
         o.right = expr->u.operation.right;
@@ -369,6 +454,22 @@ static struct ast *_prepare_expr(struct analyzer_context *ctx, struct ast *expr)
         expr->u.a_cast = c;
         }
         break;
+    case IF_EXPR: {
+        struct analyzable_if cond = {0};
+        cond.expression = _prepare_expr(ctx, expr->u.if_expression.expr);
+        if (!_expect_type(_get_type(ctx, cond.expression), "bool")) {
+            fprintf(stderr, "if/unless expects a bool operation!\n");
+            abort();
+        }
+        cond.body = _prepare_expr(ctx, expr->u.if_expression.val);
+        cond.unless = expr->u.if_expression.unless;
+        cond.else_op = _prepare_expr(ctx, expr->u.if_expression.else_val);
+        cond.result_type = _just_cast(_get_type(ctx, cond.body), _get_type(ctx, cond.else_op));
+
+        expr->type = ANALYZE_IF;
+        expr->u.a_if = cond;
+        }
+        break;
     case FIELD_ACCESS:
     default:
         fprintf(stderr, "did not expect %d in expression!\n", expr->type);
@@ -384,12 +485,51 @@ static void _prepare_global_statement(struct analyzer_context *ctx, struct ast *
     case ASSIGNMENT:
     case VAR_DECL:
     case VAR_DEF:
-        *stmt = _prepare_vars(ctx, stmt);
+        *stmt = _prepare_vars(ctx, stmt, false);
         break;
     case FN_DECL:
     case FN_DEF:
+        *stmt = _prepare_fns(ctx, stmt);
+        break;
     default:
         fprintf(stderr, "did not expect %d in global scope!\n", stmt->type);
         abort();
+    }
+}
+
+static bool _expect_type(struct analyzable_type current, const char *name)
+{
+    if (strcmp(current.identifier.str, name) == 0)
+        return true;
+
+    return false;
+}
+
+static void _assign_args_to_fn(struct analyzer_context *ctx, struct ast *fn, struct ast *first_arg)
+{
+    size_t arg_count = 0;
+
+    struct ast *iter = first_arg;
+    while (iter != NULL && iter->type == FN_ARG) {
+        if (iter->u.function_argument.current->type == VARIADIC) {
+            fn->u.a_fn.variadic = true;
+            break;
+        }
+        arg_count++;
+        iter = iter->u.function_argument.next;
+    }
+
+    fn->u.a_fn.args_count = arg_count;
+    fn->u.a_fn.args = calloc(arg_count, sizeof(struct analyzable_fn_arg));
+
+    iter = first_arg;
+    for (size_t i = 0; i < arg_count; i++) {
+        struct analyzable_fn_arg *ptr = fn->u.a_fn.args + i;
+        struct ast prepared = _prepare_vars(ctx, iter->u.function_argument.current, true);
+        ptr->type = prepared.u.a_var.type;
+        ptr->identifier = prepared.u.a_var.identifier;
+        ptr->default_value = prepared.u.a_var.value;
+
+        iter = iter->u.function_argument.next;
     }
 }

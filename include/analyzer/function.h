@@ -12,6 +12,7 @@ struct ast;
 struct analyzable_function {
     struct analyzable_type return_type;
     struct str name;
+    /* can be NULL */
     struct ast *body;
 
     struct analyzable_fn_arg *args;
@@ -20,6 +21,7 @@ struct analyzable_function {
     bool declaration;
     /* if true and fn call has more args than args_count, that's fine */
     bool variadic; 
+    /* the analyzer has checked the function */
     bool checked;
 };
 

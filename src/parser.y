@@ -193,19 +193,19 @@ field_access:
     ;
 
 assignment:
-    ident '=' expr1                         { $$ = assign_node("=", $1, $3);   }
-    | ident ADD_ASSIGN_TOK expr1            { $$ = assign_node("+=", $1, $3);  }
-    | ident SUB_ASSIGN_TOK expr1            { $$ = assign_node("-=", $1, $3);  }
-    | ident MUL_ASSIGN_TOK expr1            { $$ = assign_node("*=", $1, $3);  }
-    | ident DIV_ASSIGN_TOK expr1            { $$ = assign_node("/=", $1, $3);  }
-    | ident FLOOR_DIV_ASSIGN_TOK expr1      { $$ = assign_node("//=", $1, $3); }
-    | ident MOD_ASSIGN_TOK expr1            { $$ = assign_node("&=", $1, $3);  }
-    | ident LEFT_SHIFT_ASSIGN_TOK expr1     { $$ = assign_node("<<=", $1, $3); }
-    | ident RIGHT_SHIFT_ASSIGN_TOK expr1    { $$ = assign_node(">>=", $1, $3); }
-    | ident BIT_NOT_ASSIGN_TOK expr1        { $$ = assign_node("~=", $1, $3);  }
-    | ident BIT_AND_ASSIGN_TOK expr1        { $$ = assign_node("&=", $1, $3);  }
-    | ident BIT_OR_ASSIGN_TOK expr1         { $$ = assign_node("|=", $1, $3);  }
-    | ident XOR_ASSIGN_TOK expr1            { $$ = assign_node("^=", $1, $3);  }
+    ident '=' expr                         { $$ = assign_node("=", $1, $3);   }
+    | ident ADD_ASSIGN_TOK expr            { $$ = assign_node("+=", $1, $3);  }
+    | ident SUB_ASSIGN_TOK expr            { $$ = assign_node("-=", $1, $3);  }
+    | ident MUL_ASSIGN_TOK expr            { $$ = assign_node("*=", $1, $3);  }
+    | ident DIV_ASSIGN_TOK expr            { $$ = assign_node("/=", $1, $3);  }
+    | ident FLOOR_DIV_ASSIGN_TOK expr      { $$ = assign_node("//=", $1, $3); }
+    | ident MOD_ASSIGN_TOK expr            { $$ = assign_node("&=", $1, $3);  }
+    | ident LEFT_SHIFT_ASSIGN_TOK expr     { $$ = assign_node("<<=", $1, $3); }
+    | ident RIGHT_SHIFT_ASSIGN_TOK expr    { $$ = assign_node(">>=", $1, $3); }
+    | ident BIT_NOT_ASSIGN_TOK expr        { $$ = assign_node("~=", $1, $3);  }
+    | ident BIT_AND_ASSIGN_TOK expr        { $$ = assign_node("&=", $1, $3);  }
+    | ident BIT_OR_ASSIGN_TOK expr         { $$ = assign_node("|=", $1, $3);  }
+    | ident XOR_ASSIGN_TOK expr            { $$ = assign_node("^=", $1, $3);  }
     ;
 
 expr1:

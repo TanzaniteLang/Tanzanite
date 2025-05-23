@@ -726,11 +726,14 @@ spacing -= 2;
             offset_text(spacing);
             printf("Ident: %s,\n", arg->identifier.str);
             _describe(arg->default_value, spacing);
+            if (i + 1 < node->u.a_fn.args_count)
+                printf("\n");
         }
         spacing -= 2;
         offset_text(spacing);
         printf(")\n");
         if (!node->u.a_fn.declaration) {
+            offset_text(spacing);
             printf("Body\e[0m {\n");
             spacing += 2;
             _describe(node->u.a_fn.body, spacing);
@@ -769,6 +772,14 @@ spacing -= 2;
         printf("}\n");
         break;
     case ANALYZE_IF:
+        offset_text(spacing);
+        printf("\e[34mAnalyze %s Expr\e[0m {\n", node->u.a_if.unless ? "Unless" : "If");
+        _describe(node->u.a_if.expression, spacing + 2);
+        _describe(node->u.a_if.body, spacing + 2);
+        _describe(node->u.a_if.else_op, spacing + 2);
+        offset_text(spacing);
+        printf("}\n");
+        break;
     case ANALYZE_FOR:
     case ANALYZE_WHILE:
         fprintf(stderr, "NOT YET %d!\n", node->type);
