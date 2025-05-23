@@ -36,6 +36,7 @@ struct analyzable_call_arg {
 };
 
 struct analyzable_call {
+    struct analyzable_type result_type;
     struct str identifier;
     struct analyzable_call_arg *args;
     size_t args_count;

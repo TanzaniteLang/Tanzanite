@@ -47,6 +47,7 @@ static struct analyzable_type _just_cast(struct analyzable_type current, struct 
 static struct analyzable_type _attempt_cast(struct analyzable_type current, struct analyzable_type target);
 static bool _expect_type(struct analyzable_type current, const char *name);
 static void _assign_args_to_fn(struct analyzer_context *ctx, struct ast *fn, struct ast *first_arg);
+static void _assign_args_to_call(struct analyzer_context *ctx, struct analyzable_call *call, struct ast *first_arg);
 
 struct ast *prepare(struct analyzer_context *ctx, struct ast *to_process)
 {
@@ -297,6 +298,8 @@ start:
         return type->u.a_cast.target;
     case ANALYZE_IF:
         return type->u.a_if.result_type;
+    case ANALYZE_FN_CALL:
+        return type->u.a_fn_call.result_type;
     case BRACKETS:
         return _get_type(ctx, type->u.bracket);
     default:
@@ -532,6 +535,15 @@ assign_bool:
         expr->u.a_if = cond;
         }
         break;
+    case FN_CALL: {
+        struct analyzable_call call = {0};
+        call.identifier = expr->u.function_call.ident->u.identifier;
+        _assign_args_to_call(ctx, &call, expr->u.function_call.first_arg);
+
+        expr->type = ANALYZE_FN_CALL;
+        expr->u.a_fn_call = call;
+        }
+        break;
     case FIELD_ACCESS:
     default:
         fprintf(stderr, "did not expect %d in expression!\n", expr->type);
@@ -593,6 +605,17 @@ static void _assign_args_to_fn(struct analyzer_context *ctx, struct ast *fn, str
         ptr->identifier = prepared.u.a_var.identifier;
         ptr->default_value = prepared.u.a_var.value;
 
+        if (ptr->default_value != NULL) {
+            struct analyzable_cast cast = {0};
+            cast.value = ptr->default_value;
+            cast.target = _attempt_cast(_get_type(ctx, cast.value), ptr->type);
+
+            struct ast *c = calloc(1, sizeof(*c));
+            c->type = ANALYZE_TYPE_CAST;
+            c->u.a_cast = cast;
+            ptr->default_value = c;
+        }
+
         if (needs_def_val && ptr->default_value == NULL) {
             fprintf(stderr, "%ld. arg %s is expected to have default value!\n", i + 1, ptr->identifier.str);
             abort();
@@ -603,4 +626,83 @@ static void _assign_args_to_fn(struct analyzer_context *ctx, struct ast *fn, str
 
         iter = iter->u.function_argument.next;
     }
+}
+
+static void _assign_args_to_call(struct analyzer_context *ctx, struct analyzable_call *call, struct ast *first_arg)
+{
+    size_t arg_count = 0;
+
+    struct ast *iter = first_arg;
+    while (iter != NULL && iter->type == FN_ARG) {
+        arg_count++;
+        iter = iter->u.function_argument.next;
+    }
+
+    uint32_t it = function_store_find(&ctx->functions, call->identifier.str);
+    if (!hash_exists(&ctx->functions, it)) {
+        fprintf(stderr, "funciton call to unknown function %s!\n", call->identifier.str);
+        abort();
+    }
+
+    struct analyzable_function *fn_signature = &hash_value(&ctx->functions, it);
+
+    size_t limit = 0;
+
+    if (fn_signature->variadic) {
+        limit = arg_count >= fn_signature->args_count ? arg_count : fn_signature->args_count;
+    } else {
+        limit = fn_signature->args_count;
+    }
+
+    /* if so, check if function has default values or not */
+    if (arg_count < limit) {
+        for (size_t i = arg_count; i < limit; i++) {
+            struct analyzable_fn_arg *ptr = fn_signature->args + i;
+            if (ptr->default_value == NULL) {
+                fprintf(stderr, "function %s requires %ld arguments, got %ld!\n",
+                    call->identifier.str, limit, i);
+                abort();
+            }
+        }
+    }
+
+    if (!fn_signature->variadic && arg_count > limit) {
+        fprintf(stderr, "function %s has too many arguments and is not variadic!\n", call->identifier.str);
+        abort();
+    }
+
+    struct analyzable_call_arg *args = calloc(limit, sizeof(*args));
+
+    iter = first_arg;
+    for (size_t i = 0; i < arg_count; i++) {
+        struct analyzable_call_arg *ptr = args + i;
+        struct ast *prepared = _prepare_expr(ctx, iter->u.function_argument.current);
+
+        if (i < fn_signature->args_count) {
+            struct analyzable_cast cast = {0};
+            struct analyzable_fn_arg *arg = fn_signature->args + i;
+
+            cast.value = dup_node(prepared);
+            cast.target = _attempt_cast(_get_type(ctx, cast.value), arg->type);
+            prepared->type = ANALYZE_TYPE_CAST;
+            prepared->u.a_cast = cast;
+
+            ptr->value = prepared;
+        } else {
+            ptr->value = prepared;
+        }
+
+        iter = iter->u.function_argument.next;
+    }
+
+    for (size_t i = arg_count; i < limit; i++) {
+        struct analyzable_fn_arg *ptr = fn_signature->args + i;
+        struct analyzable_call_arg *arg = args + i;
+
+        arg->value = ptr->default_value;
+    }
+
+    call->args = args;
+    call->args_count = limit;
+    call->result_type = fn_signature->return_type;
 }
