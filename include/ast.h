@@ -49,6 +49,7 @@ enum node_type {
     NEXT,
     BREAK,
     VARIADIC,
+    RANGE,
 
     /* Analysis special nodes */
     ANALYZE_VALUE = 256,
@@ -173,6 +174,10 @@ struct ast {
             struct ast *expr;
             struct ast *type;
         } type_cast;
+        struct {
+            int64_t start;
+            int64_t end;
+        } range;
 
         /* Analysis special nodes */
         struct analyzable_value a_value;
@@ -223,6 +228,7 @@ struct ast *type_cast_node(struct ast *expr, struct ast *type);
 struct ast *break_node();
 struct ast *next_node();
 struct ast *variadic_node();
+struct ast *range_node(int64_t start, int64_t end);
 
 struct ast *dup_node(struct ast *node);
 

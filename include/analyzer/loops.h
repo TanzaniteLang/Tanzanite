@@ -6,7 +6,6 @@
 #include <str.h>
 
 struct analyzable_for {
-    struct analyzable_type payload_type;
     struct ast *expr;
 
     struct analyzable_payload *payloads;
@@ -21,11 +20,10 @@ struct analyzable_payload {
 };
 
 struct analyzable_while {
-    struct analyzable_type result_type;
     struct ast *expr;
     struct ast *body;
 
-    bool do_while;
+    bool infinite;
     bool until;
 };
 

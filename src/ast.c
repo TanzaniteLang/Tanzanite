@@ -351,6 +351,16 @@ struct ast *dup_node(struct ast *n)
     return node;
 }
 
+struct ast *range_node(int64_t start, int64_t end)
+{
+    struct ast *node = calloc(1, sizeof(*node));
+    node->type = RANGE;
+    node->u.range.start = start;
+    node->u.range.end = end;
+
+    return node;
+}
+
 
 
 static void offset_text(int count)
@@ -790,9 +800,49 @@ spacing -= 2;
         offset_text(spacing);
         printf("}\n");
         break;
-    case ANALYZE_FOR:
     case ANALYZE_WHILE:
-        fprintf(stderr, "NOT YET %d!\n", node->type);
+        offset_text(spacing);
+        printf("\e[34mAnalyze %s\e[0m {\n", node->u.while_statement.until ? "Until" : "While");
+        _describe(node->u.a_while.expr, spacing + 2);
+        spacing += 2;
+        offset_text(spacing);
+        printf("Body\e[0m {\n");
+        _describe(node->u.a_while.body, spacing + 2);
+        offset_text(spacing);
+        printf("}\n");
+        offset_text(spacing);
+        printf("\e[36mIs do-while\e[0m: %s\n", node->u.a_while.infinite ? "true" : "false");
+        spacing -= 2;
+        offset_text(spacing);
+        printf("}\n");
+        break;
+    case ANALYZE_FOR:
+        offset_text(spacing);
+        printf("\e[34mAnalyze For\e[0m {\n");
+        _describe(node->u.a_for.expr, spacing + 2);
+        spacing += 2;
+        offset_text(spacing);
+        printf("\e[32mCapture\e[0m |\n");
+        for (size_t i = 0; i < node->u.a_for.payload_count; i++) {
+            struct analyzable_payload *payload = node->u.a_for.payloads + i;
+            offset_text(spacing + 2);
+            printf("\e[36mIdent\e[0m: %s\n", payload->identifier.str);
+            print_a_type(payload->type, spacing + 2);
+        }
+        offset_text(spacing);
+        printf("|\n");
+        offset_text(spacing);
+        printf("Body\e[0m {\n");
+        _describe(node->u.a_for.body, spacing + 2);
+        offset_text(spacing);
+        printf("}\n");
+        spacing -= 2;
+        offset_text(spacing);
+        printf("}\n");
+        break;
+    case RANGE:
+        offset_text(spacing);
+        printf("\e[36mRange\e[0m: %ld..%ld\n", node->u.range.start, node->u.range.end);
         break;
     }
 }

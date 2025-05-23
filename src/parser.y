@@ -147,7 +147,7 @@ ident:
 
 value:
     INT_TOK                         { $$ = int_node($1);       }
-    /* | INT_TOK RANGE_TOK INT_TOK     { $$ = range_node($1, $3); } */
+    | INT_TOK RANGE_TOK INT_TOK     { $$ = range_node($1, $3); }
     | FLOAT_TOK                     { $$ = float_node($1);     }
     | STRING_TOK                    { $$ = string_node($1);    }
     | CHAR_TOK                      { $$ = char_node($1);      }
