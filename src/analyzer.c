@@ -10,7 +10,7 @@
 
 struct builtin_types {
     char *name;
-    size_t size;
+size_t size;
 };
 
 static const struct builtin_types types[] = {
@@ -88,10 +88,28 @@ static struct ast _prepare_vars(struct analyzer_context *ctx, struct ast *var, b
     variable.type = ANALYZE_VAR;
 
     if (var->type == VAR_DECL) {
+        if (fn_arg)
+            goto skip1;
+
+        struct var_store_res it = var_store_find(&ctx->variables, var->u.variable_declaration.identifier->u.identifier.str);
+        if (it.found) {
+            fprintf(stderr, "variable %s already exists!\n", var->u.assignment.left->u.identifier.str);
+            abort();
+        }
+skip1:
         variable.u.a_var.identifier = var->u.variable_declaration.identifier->u.identifier;
         variable.u.a_var.type = _get_type(ctx, var->u.variable_declaration.type);
         variable.u.a_var.is_declaration = true;
     } else if (var->type == VAR_DEF) {
+        if (fn_arg)
+            goto skip2;
+
+        struct var_store_res it = var_store_find(&ctx->variables, var->u.function_definition.ident->u.identifier.str);
+        if (it.found) {
+            fprintf(stderr, "variable %s already exists!\n", var->u.assignment.left->u.identifier.str);
+            abort();
+        }
+skip2:
         variable.u.a_var.identifier = var->u.variable_definition.identifier->u.identifier;
         if (var->u.variable_definition.type == NULL) {
             struct ast *prepared = _prepare_expr(ctx, var->u.variable_definition.value);
@@ -111,14 +129,13 @@ static struct ast _prepare_vars(struct analyzer_context *ctx, struct ast *var, b
         }
 
         if (fn_arg)
-            goto skip;
+            goto skip3;
 
         struct var_store_res it = var_store_find(&ctx->variables, var->u.assignment.left->u.identifier.str);
         if (it.found) {
-            fprintf(stderr, "variable %s already exists!\n", var->u.assignment.left->u.identifier.str);
-            abort();
+            return *var;
         }
-skip:
+skip3:
 
         variable.u.a_var.identifier = var->u.assignment.left->u.identifier;
         variable.u.a_var.value = _prepare_expr(ctx, var->u.assignment.right);
@@ -152,7 +169,6 @@ static struct ast _prepare_fns(struct analyzer_context *ctx, struct ast *fun)
         fn.u.a_fn.name = fun->u.function_declaration.ident->u.identifier;
         fn.u.a_fn.body = NULL;
 
-        /* handles args and also handles variadic */
         _assign_args_to_fn(ctx, &fn, fun->u.function_declaration.arg_list);
 
         fn.u.a_fn.immutable = fun->u.function_declaration.immutable;
@@ -175,7 +191,6 @@ static struct ast _prepare_fns(struct analyzer_context *ctx, struct ast *fun)
         fn.u.a_fn.name = fun->u.function_definition.ident->u.identifier;
         fn.u.a_fn.body = fun->u.function_definition.body;
 
-        /* handles args and also handles variadic */
         _assign_args_to_fn(ctx, &fn, fun->u.function_definition.arg_list);
 
         fn.u.a_fn.immutable = fun->u.function_definition.immutable;
@@ -184,7 +199,54 @@ static struct ast _prepare_fns(struct analyzer_context *ctx, struct ast *fun)
 
         if (hash_exists(&ctx->functions, it)) {
             struct analyzable_function f = hash_value(&ctx->functions, it);
-            /* compare signatures */
+            if (strcmp(f.return_type.identifier.str, fn.u.a_fn.return_type.identifier.str) != 0) {
+                fprintf(stderr, "return type missmatch! expected %s got %s!\n", f.return_type.identifier.str,
+                    fn.u.a_fn.return_type.identifier.str);
+                abort();
+            }
+
+            if (f.immutable != fn.u.a_fn.immutable) {
+                fprintf(stderr, "function type missmatch! expected %s got %s!\n", f.immutable ? "C" : "Tanzanite",
+                    fn.u.a_fn.immutable ? "C" : "Tanzanite");
+                abort();
+            }
+
+            if (f.variadic != fn.u.a_fn.variadic) {
+                fprintf(stderr, "function variadic missmatch! expected %s got %s!\n", f.variadic ? "yes" : "no",
+                    fn.u.a_fn.variadic ? "yes" : "no");
+                abort();
+            }
+
+            if (f.args_count != fn.u.a_fn.args_count) {
+                fprintf(stderr, "argument count missmatch! expected %ld got %ld!\n", f.args_count, fn.u.a_fn.args_count);
+                abort();
+            }
+
+            for (size_t i = 0; i < f.args_count; i++) {
+                struct analyzable_fn_arg *decl = f.args + i;
+                struct analyzable_fn_arg *def = fn.u.a_fn.args + i;
+
+                if (strcmp(decl->identifier.str, def->identifier.str) != 0) {
+                    fprintf(stderr, "%ld. arg name missmatch! expected %s got %s!\n", i + 1, decl->identifier.str,
+                        def->identifier.str);
+                    abort();
+                }
+
+                if (strcmp(decl->type.identifier.str, def->type.identifier.str) != 0) {
+                    fprintf(stderr, "%ld. arg type missmatch! expected %s got %s!\n", i + 1, decl->type.identifier.str,
+                        def->type.identifier.str);
+                    abort();
+                }
+
+                if (decl->type.pointer_depth != def->type.pointer_depth) {
+                    fprintf(stderr, "%ld. arg pointer depth missmath! expected %ld got %ld!\n", i + 1,
+                        decl->type.pointer_depth, def->type.pointer_depth);
+                    abort();
+                }
+            }
+
+            free(fn.u.a_fn.args);
+            fn.u.a_fn.args = f.args;
         }
 
         if (!hash_exists(&ctx->functions, it))
@@ -507,6 +569,7 @@ static bool _expect_type(struct analyzable_type current, const char *name)
 
 static void _assign_args_to_fn(struct analyzer_context *ctx, struct ast *fn, struct ast *first_arg)
 {
+    bool needs_def_val = false;
     size_t arg_count = 0;
 
     struct ast *iter = first_arg;
@@ -529,6 +592,14 @@ static void _assign_args_to_fn(struct analyzer_context *ctx, struct ast *fn, str
         ptr->type = prepared.u.a_var.type;
         ptr->identifier = prepared.u.a_var.identifier;
         ptr->default_value = prepared.u.a_var.value;
+
+        if (needs_def_val && ptr->default_value == NULL) {
+            fprintf(stderr, "%ld. arg %s is expected to have default value!\n", i + 1, ptr->identifier.str);
+            abort();
+        }
+
+        if (ptr->default_value != NULL)
+            needs_def_val = true;
 
         iter = iter->u.function_argument.next;
     }
