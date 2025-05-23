@@ -773,9 +773,19 @@ spacing -= 2;
         break;
     case ANALYZE_IF:
         offset_text(spacing);
-        printf("\e[34mAnalyze %s Expr\e[0m {\n", node->u.a_if.unless ? "Unless" : "If");
+        printf("\e[34mAnalyze %s\e[0m {\n", node->u.a_if.unless ? "Unless" : "If");
         _describe(node->u.a_if.expression, spacing + 2);
         _describe(node->u.a_if.body, spacing + 2);
+        for (size_t i = 0; i < node->u.a_if.elsifs_count; i++) {
+            struct analyzable_elsif *elsif = node->u.a_if.elsifs + i;
+
+            offset_text(spacing + 2);
+            printf("\e[33mElse If\e[0m {\n");
+            _describe(elsif->expression, spacing + 4);
+            _describe(elsif->body, spacing + 4);
+            offset_text(spacing + 2);
+            printf("}\n");
+        }
         _describe(node->u.a_if.else_op, spacing + 2);
         offset_text(spacing);
         printf("}\n");

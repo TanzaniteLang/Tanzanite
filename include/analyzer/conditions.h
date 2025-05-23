@@ -20,7 +20,6 @@ struct analyzable_if {
 };
 
 struct analyzable_elsif {
-    struct analyzable_type result_type;
     struct ast *expression;
     struct ast *body;
 };

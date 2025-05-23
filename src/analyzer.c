@@ -40,6 +40,7 @@ static const struct builtin_types types[] = {
 
 static void _prepare_global_statement(struct analyzer_context *ctx, struct ast *stmt);
 static void _prepare_body_statements(struct analyzer_context *ctx, struct ast *body);
+static void _prepare_body(struct analyzer_context *ctx, struct ast *body);
 static struct ast _prepare_vars(struct analyzer_context *ctx, struct ast *var, bool fn_arg);
 static struct ast _prepare_fns(struct analyzer_context *ctx, struct ast *fun);
 static struct ast _prepare_conds(struct analyzer_context *ctx, struct ast *cond);
@@ -127,8 +128,8 @@ static void _prepare_body_statements(struct analyzer_context *ctx, struct ast *b
         break;
     case FOR:
     case WHILE:
-        *body = _prepare_loops(ctx, body);
-        break;
+        // *body = _prepare_loops(ctx, body);
+        // break;
     case NEXT:
     case BREAK:
         break;
@@ -156,6 +157,17 @@ static void _prepare_global_statement(struct analyzer_context *ctx, struct ast *
         fprintf(stderr, "did not expect %d in global scope!\n", stmt->type);
         abort();
     }
+}
+
+static void _prepare_body(struct analyzer_context *ctx, struct ast *body)
+{
+    struct ast *iter = body;
+    var_store_push_frame(&ctx->variables);
+    while (iter != NULL) {
+        _prepare_body_statements(ctx, iter->u.statement.current);
+        iter = iter->u.statement.next;
+    }
+    var_store_pop_frame(&ctx->variables);
 }
 
 static struct ast _prepare_vars(struct analyzer_context *ctx, struct ast *var, bool fn_arg)
@@ -338,7 +350,62 @@ static struct ast _prepare_fns(struct analyzer_context *ctx, struct ast *fun)
 
 static struct ast _prepare_conds(struct analyzer_context *ctx, struct ast *cond)
 {
+    struct ast c = {0};
+    c.type = ANALYZE_IF;
 
+    if (cond->type == EXPR_IF) {
+        c.u.a_if.expression = _prepare_expr(ctx, cond->u.expression_if.condition);
+        if (!_expect_type(_get_type(ctx, c.u.a_if.expression), "bool")) {
+            fprintf(stderr, "if/unless expects a bool operation!\n");
+            abort();
+        }
+        c.u.a_if.body = _prepare_expr(ctx, cond->u.expression_if.expr);
+        c.u.a_if.unless = cond->u.expression_if.unless;
+    } else if (cond->type == IF_COND) {
+        c.u.a_if.expression = _prepare_expr(ctx, cond->u.if_statement.expr);
+        if (!_expect_type(_get_type(ctx, c.u.a_if.expression), "bool")) {
+            fprintf(stderr, "if/unless expects a bool operation!\n");
+            abort();
+        }
+        c.u.a_if.body = cond->u.if_statement.body;
+        if (c.u.a_if.body != NULL)
+            _prepare_body(ctx, c.u.a_if.body);
+        c.u.a_if.unless = cond->u.if_statement.unless;
+
+        size_t count = 0;
+        struct ast *iter = cond->u.if_statement.next;
+        while (iter != NULL && iter->type != ELSE_COND) {
+            count++;
+            iter = iter->u.elsif_statement.next;
+        }
+
+        if (iter != NULL && iter->type == ELSE_COND) {
+            c.u.a_if.else_op = iter;
+            _prepare_body(ctx, c.u.a_if.else_op->u.else_statement);
+        }
+
+        if (count > 0) {
+            struct analyzable_elsif *elsifs = calloc(count, sizeof(*elsifs));
+            iter = cond->u.if_statement.next;
+            for (size_t i = 0; i < count; i++) {
+                struct analyzable_elsif *ptr = elsifs + i;
+                ptr->expression = _prepare_expr(ctx, iter->u.elsif_statement.expr);
+                if (!_expect_type(_get_type(ctx, ptr->expression), "bool")) {
+                    fprintf(stderr, "elsif expects a bool operation!\n");
+                    abort();
+                }
+                ptr->body = iter->u.elsif_statement.body;
+                if (ptr->body != NULL)
+                    _prepare_body(ctx, ptr->body);
+
+                iter = iter->u.elsif_statement.next;
+            }
+            c.u.a_if.elsifs = elsifs;
+            c.u.a_if.elsifs_count = count;
+        }
+    }
+
+    return c;
 }
 
 static struct ast _prepare_loops(struct analyzer_context *ctx, struct ast *loop)
@@ -630,6 +697,9 @@ assign_bool:
         expr->type = ANALYZE_FN_CALL;
         expr->u.a_fn_call = call;
         }
+        break;
+    case NEXT:
+    case BREAK:
         break;
     case FIELD_ACCESS:
     default:

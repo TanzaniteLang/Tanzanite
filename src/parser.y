@@ -182,8 +182,8 @@ expr:
     expr1                                            { $$ = $1;                          }
     | BREAK_TOK                                      { $$ = break_node();                }
     | NEXT_TOK                                       { $$ = next_node();                 }
-    | expr1 IF_TOK expr1                             { $$ = expr_if_node($1, $3, 0);     }
-    | expr1 UNLESS_TOK expr1                         { $$ = expr_if_node($1, $3, 1);     }
+    | expr IF_TOK expr1                              { $$ = expr_if_node($1, $3, 0);     }
+    | expr UNLESS_TOK expr1                          { $$ = expr_if_node($1, $3, 1);     }
     | IF_TOK expr1 THEN_TOK expr1 ELSE_TOK expr1     { $$ = if_expr_node($2, $4, $6, 0); }
     | UNLESS_TOK expr1 THEN_TOK expr1 ELSE_TOK expr1 { $$ = if_expr_node($2, $4, $6, 1); }
     ;
