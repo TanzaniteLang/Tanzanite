@@ -8,7 +8,8 @@
 
 
 extern int yylineno;
-extern int start_column;
+extern int yycolumn;
+extern int yyleng;
 extern int yycolumn;
 extern char *yytext;
 
@@ -40,7 +41,7 @@ static struct ast *root;
 
 %left '+' INCREMENT_TOK '-' DECREMENT_TOK '*' '/' FLOOR_DIV_TOK '%' '~' '&' '|' '^' PIPE_FORWARD_TOK
 %left LEFT_SHIFT_TOK RIGHT_SHIFT_TOK '.' AS_TOK SPLAT_TOK RANGE_TOK
-%left EQL_TOK '!' NOT_EQL_TOK AND_TOK OR_TOK '<' LESS_THAN_EQL_TOK '>' GREATER_THAN_EQL_TOK
+%left EQL_TOK '!' NOT_EQL_TOK AND_TOK OR_TOK '<' LESS_THAN_EQL_TOK '>' MORE_THAN_EQL_TOK
 %right '=' ADD_ASSIGN_TOK SUB_ASSIGN_TOK MUL_ASSIGN_TOK DIV_ASSIGN_TOK FLOOR_DIV_ASSIGN_TOK MOD_ASSIGN_TOK
 %right BIT_NOT_ASSIGN_TOK BIT_AND_ASSIGN_TOK BIT_OR_ASSIGN_TOK XOR_ASSIGN_TOK
 %right LEFT_SHIFT_ASSIGN_TOK RIGHT_SHIFT_ASSIGN_TOK
@@ -129,7 +130,6 @@ vars:
     ident ':' AUTO_TOK '=' expr     { $$ = var_def_node(NULL, $1, $5);          }
     | ident ':' type                { $$ = var_decl_node(type_node($3), $1);    }
     | ident ':' type '=' expr       { $$ = var_def_node(type_node($3), $1, $5); }
-    | assignment                    { $$ = $1;                                  }
     ;
 
 type:
@@ -186,6 +186,7 @@ expr:
     | expr UNLESS_TOK expr1                          { $$ = expr_if_node($1, $3, 1);     }
     | IF_TOK expr1 THEN_TOK expr1 ELSE_TOK expr1     { $$ = if_expr_node($2, $4, $6, 0); }
     | UNLESS_TOK expr1 THEN_TOK expr1 ELSE_TOK expr1 { $$ = if_expr_node($2, $4, $6, 1); }
+    | assignment                    { $$ = $1;                                  }
     ;
 
 field_access:
@@ -193,19 +194,19 @@ field_access:
     ;
 
 assignment:
-    ident '=' expr                         { $$ = assign_node("=", $1, $3);   }
-    | ident ADD_ASSIGN_TOK expr            { $$ = assign_node("+=", $1, $3);  }
-    | ident SUB_ASSIGN_TOK expr            { $$ = assign_node("-=", $1, $3);  }
-    | ident MUL_ASSIGN_TOK expr            { $$ = assign_node("*=", $1, $3);  }
-    | ident DIV_ASSIGN_TOK expr            { $$ = assign_node("/=", $1, $3);  }
-    | ident FLOOR_DIV_ASSIGN_TOK expr      { $$ = assign_node("//=", $1, $3); }
-    | ident MOD_ASSIGN_TOK expr            { $$ = assign_node("&=", $1, $3);  }
-    | ident LEFT_SHIFT_ASSIGN_TOK expr     { $$ = assign_node("<<=", $1, $3); }
-    | ident RIGHT_SHIFT_ASSIGN_TOK expr    { $$ = assign_node(">>=", $1, $3); }
-    | ident BIT_NOT_ASSIGN_TOK expr        { $$ = assign_node("~=", $1, $3);  }
-    | ident BIT_AND_ASSIGN_TOK expr        { $$ = assign_node("&=", $1, $3);  }
-    | ident BIT_OR_ASSIGN_TOK expr         { $$ = assign_node("|=", $1, $3);  }
-    | ident XOR_ASSIGN_TOK expr            { $$ = assign_node("^=", $1, $3);  }
+    ident '=' expr1                         { $$ = assign_node("=", $1, $3);   }
+    | ident ADD_ASSIGN_TOK expr1            { $$ = assign_node("+=", $1, $3);  }
+    | ident SUB_ASSIGN_TOK expr1            { $$ = assign_node("-=", $1, $3);  }
+    | ident MUL_ASSIGN_TOK expr1            { $$ = assign_node("*=", $1, $3);  }
+    | ident DIV_ASSIGN_TOK expr1            { $$ = assign_node("/=", $1, $3);  }
+    | ident FLOOR_DIV_ASSIGN_TOK expr1      { $$ = assign_node("//=", $1, $3); }
+    | ident MOD_ASSIGN_TOK expr1            { $$ = assign_node("&=", $1, $3);  }
+    | ident LEFT_SHIFT_ASSIGN_TOK expr1     { $$ = assign_node("<<=", $1, $3); }
+    | ident RIGHT_SHIFT_ASSIGN_TOK expr1    { $$ = assign_node(">>=", $1, $3); }
+    | ident BIT_NOT_ASSIGN_TOK expr1        { $$ = assign_node("~=", $1, $3);  }
+    | ident BIT_AND_ASSIGN_TOK expr1        { $$ = assign_node("&=", $1, $3);  }
+    | ident BIT_OR_ASSIGN_TOK expr1         { $$ = assign_node("|=", $1, $3);  }
+    | ident XOR_ASSIGN_TOK expr1            { $$ = assign_node("^=", $1, $3);  }
     ;
 
 expr1:
@@ -221,6 +222,10 @@ expr1:
     | expr1 '%' expr1                 { $$ = operation_node("%", $1, $3);    }
     | expr1 LEFT_SHIFT_TOK expr1      { $$ = operation_node("<<", $1, $3);   }
     | expr1 RIGHT_SHIFT_TOK expr1     { $$ = operation_node(">>", $1, $3);   }
+    | expr1 '<' expr1                 { $$ = operation_node("<", $1, $3);    }
+    | expr1 LESS_THAN_EQL_TOK expr1   { $$ = operation_node("<=", $1, $3);   }
+    | expr1 '>' expr1                 { $$ = operation_node(">", $1, $3);    }
+    | expr1 MORE_THAN_EQL_TOK expr1   { $$ = operation_node(">=", $1, $3);   }
     | expr1 EQL_TOK expr1             { $$ = operation_node("==", $1, $3);   }
     | expr1 NOT_EQL_TOK expr1         { $$ = operation_node("!=", $1, $3);   }
     | expr1 '&' expr1                 { $$ = operation_node("&", $1, $3);    }
@@ -242,6 +247,5 @@ struct ast *parse() {
 }
 
 int yyerror(const char *s) {
-    fprintf(stderr, "Error at line (%d:%d): %s: '%s'\n", yylineno, start_column, s, yytext);
-    return 0;
+    return fprintf(stderr, "Error at line (%d:%d): %s: '%s'\n", yylineno, yycolumn - yyleng, s, yytext);
 }

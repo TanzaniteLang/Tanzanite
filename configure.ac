@@ -1,5 +1,4 @@
 AC_INIT([Tanzanite], [0.1], [LowByteFox])
-AC_CONFIG_AUX_DIR([build])
 AM_INIT_AUTOMAKE([foreign subdir-objects -Wall -Werror])
 AC_PROG_CC
 AC_PROG_LEX([yywrap])

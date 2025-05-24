@@ -47,7 +47,7 @@ void str_builder_append_char(struct str_builder *b, char c)
     b->buffer.str[b->buffer.size] = 0;
 }
 
-void str_builder_append_cstr(struct str_builder *b, char *str)
+void str_builder_append_cstr(struct str_builder *b, const char *str)
 {
     int len = strlen(str);
     while (b->buffer.size + len + 1 >= b->allocated)

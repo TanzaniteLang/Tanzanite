@@ -257,11 +257,14 @@ skip2:
 
         struct var_store_res it = var_store_find(&ctx->variables, var->u.assignment.left->u.identifier.str);
         if (it.found) {
+            var->u.assignment.right = _prepare_expr(ctx, var->u.assignment.right);
             return *var;
         }
 skip3:
-        if (strcmp(var->u.assignment.op, "=") != 0)
+        if (strcmp(var->u.assignment.op, "=") != 0) {
+            var->u.assignment.right = _prepare_expr(ctx, var->u.assignment.right);
             return *var;
+        }
 
         variable.u.a_var.identifier = var->u.assignment.left->u.identifier;
         variable.u.a_var.value = _prepare_expr(ctx, var->u.assignment.right);
@@ -453,10 +456,12 @@ static struct ast _prepare_loops(struct analyzer_context *ctx, struct ast *loop)
         l.u.a_while.infinite = loop->u.while_statement.do_while;
         l.u.a_while.until = loop->u.while_statement.until;
 
-        l.u.a_while.expr = _prepare_expr(ctx, loop->u.while_statement.expr);
-        if (!_expect_type(_get_type(ctx, l.u.a_while.expr), "bool")) {
-            fprintf(stderr, "if/unless expects a bool operation!\n");
-            abort();
+        if (!l.u.a_while.infinite) {
+            l.u.a_while.expr = _prepare_expr(ctx, loop->u.while_statement.expr);
+            if (!_expect_type(_get_type(ctx, l.u.a_while.expr), "bool")) {
+                fprintf(stderr, "if/unless expects a bool operation!\n");
+                abort();
+            }
         }
 
         l.u.a_while.body = loop->u.a_while.body;
@@ -606,6 +611,8 @@ start:
         return type->u.a_fn_call.result_type;
     case BRACKETS:
         return _get_type(ctx, type->u.bracket);
+    case ASSIGNMENT:
+        return _get_type(ctx, type->u.assignment.right);
     default:
         fprintf(stderr, "expected type nodes, got %d!\n", type->type);
         abort();
@@ -853,6 +860,9 @@ assign_bool:
         break;
     case NEXT:
     case BREAK:
+        break;
+    case ASSIGNMENT:
+        *expr = _prepare_vars(ctx, expr, false);
         break;
     case FIELD_ACCESS:
     default:

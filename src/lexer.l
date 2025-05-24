@@ -6,7 +6,6 @@
 
 /* https://stackoverflow.com/a/26857402 */
 int yycolumn = 1;
-int start_column = 0;
 
 #define YY_USER_ACTION                                                   \
   start_line = prev_yylineno; start_column = yycolumn;                   \
@@ -20,6 +19,7 @@ int start_column = 0;
 
 %%
  int start_line = 0;
+ int start_column = 0;
  int prev_yylineno = yylineno;
 
  /* Statements */
@@ -106,7 +106,7 @@ int start_column = 0;
 "<<"                return LEFT_SHIFT_TOK;
 "<<="               return LEFT_SHIFT_ASSIGN_TOK;
 ">"                 return '>';
-">="                return GREATER_THAN_EQL_TOK;
+">="                return MORE_THAN_EQL_TOK;
 ">>"                return RIGHT_SHIFT_TOK;
 ">>="               return RIGHT_SHIFT_ASSIGN_TOK;
 

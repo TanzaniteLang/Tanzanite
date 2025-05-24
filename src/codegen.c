@@ -14,11 +14,12 @@ static void _emit_type(struct str_builder *b, struct analyzable_type *type);
 static void _emit_type_cast(struct str_builder *b, struct analyzable_type *type);
 static void _emit_fn_call(struct str_builder *b, struct analyzable_call *call);
 static void _emit_for(struct str_builder *b, struct analyzable_for *loop);
+static void _emit_while(struct str_builder *b, struct analyzable_while *loop);
+static void _emit_if(struct str_builder *b, struct analyzable_if *cond);
+static void _emit_elsif(struct str_builder *b, struct analyzable_elsif *cond);
 
 static void _emit_fn_decl(struct str_builder *b, struct ast *decl);
 static void _emit_fn_def(struct str_builder *b, struct ast *def);
-static void _emit_if(struct str_builder *b, struct ast *cond);
-static void _emit_elsif(struct str_builder *b, struct ast *cond);
 
 struct str emit_c(struct ast *ast)
 {
@@ -70,6 +71,15 @@ static bool _emit_c(struct str_builder *b, struct ast *a)
         _emit_type_cast(b, &a->u.a_value.result);
         _emit_c(b, a->u.a_value.value);
         break;
+    case ANALYZE_VAR:
+        _emit_type(b, &a->u.a_var.type);
+        str_builder_append_char(b, ' ');
+        str_builder_append_cstr(b, a->u.a_var.identifier.str);
+        if (!a->u.a_var.is_declaration) {
+            str_builder_append_cstr(b, " = ");
+            _emit_c(b, a->u.a_var.value);
+        }
+        break;
     case ANALYZE_FN:
         _emit_fn(b, &a->u.a_fn);
         return false;
@@ -92,7 +102,25 @@ static bool _emit_c(struct str_builder *b, struct ast *a)
         _emit_for(b, &a->u.a_for);
         return false;
         break;
-    case PROGRAM:
+    case ANALYZE_WHILE:
+        _emit_while(b, &a->u.a_while);
+        return false;
+        break;
+    case ASSIGNMENT:
+        _emit_c(b, a->u.assignment.left);
+        str_builder_printf(b, " %s ", a->u.assignment.op);
+        _emit_c(b, a->u.assignment.right);
+        break;
+    case ANALYZE_IF:
+        _emit_if(b, &a->u.a_if);
+        return false;
+        break;
+    case NEXT:
+        str_builder_append_cstr(b, "continue");
+        break;
+    case BREAK:
+        str_builder_append_cstr(b, "break");
+        break;
     case STATEMENT:
     case IDENTIFIER_CHAIN:
     case OPERATION:
@@ -113,55 +141,15 @@ static bool _emit_c(struct str_builder *b, struct ast *a)
     case WHILE:
     case FIELD_ACCESS:
     case POINTER_DEREF:
-    case ASSIGNMENT:
     case TYPE_CAST:
-    case NEXT:
-    case BREAK:
     case VARIADIC:
     case RANGE:
-    case ANALYZE_VAR:
-    case ANALYZE_IF:
-    case ANALYZE_WHILE:
         fprintf(stderr, "Unhandled node type %d!\n", a->type);
         abort();
     }
 
     return true;
 }
-
-static void _emit_elsif(struct str_builder *b, struct ast *cond)
-{
-    str_builder_append_cstr(b, "else if (");
-
-    _emit_c(b, cond->u.if_statement.expr);
-
-    str_builder_append_cstr(b, ") {\n");
-    _emit_body(b, cond->u.elsif_statement.body);
-    str_builder_append_char(b, '}');
-    if (cond->u.elsif_statement.next == NULL)
-        str_builder_append_char(b, '\n');
-}
-
-static void _emit_if(struct str_builder *b, struct ast *cond)
-{
-    str_builder_append_cstr(b, "if (");
-    if (cond->u.if_statement.unless)
-        str_builder_append_cstr(b, "!(");
-
-    _emit_c(b, cond->u.if_statement.expr);
-
-    if (cond->u.if_statement.unless)
-        str_builder_append_char(b, ')');
-    str_builder_append_cstr(b, ") {\n");
-    _emit_body(b, cond->u.if_statement.body);
-    str_builder_append_char(b, '}');
-    if (cond->u.if_statement.next == NULL)
-        str_builder_append_char(b, '\n');
-}
-
-
-
-
 
 static void _emit_fn(struct str_builder *b, struct analyzable_function *fn)
 {
@@ -174,6 +162,7 @@ static void _emit_fn(struct str_builder *b, struct analyzable_function *fn)
         if (i + 1 < fn->args_count || fn->variadic)
             str_builder_append_cstr(b, ", ");
     }
+
     if (fn->variadic)
         str_builder_append_cstr(b, "...");
 
@@ -233,6 +222,53 @@ static void _emit_for(struct str_builder *b, struct analyzable_for *loop)
     }
 }
 
+static void _emit_while(struct str_builder *b, struct analyzable_while *loop)
+{
+    if (loop->infinite) {
+        str_builder_append_cstr(b, "while (true) {\n");
+    } else {
+        if (loop->until)
+            str_builder_append_cstr(b, "until (");
+        else
+            str_builder_append_cstr(b, "while (");
+        _emit_c(b, loop->expr);
+        str_builder_append_cstr(b, ") {\n");
+    }
+
+    _emit_body(b, loop->body);
+    str_builder_append_cstr(b, "}\n");
+}
+
+static void _emit_if(struct str_builder *b, struct analyzable_if *cond)
+{
+    if (cond->unless)
+        str_builder_append_cstr(b, "unless (");
+    else
+        str_builder_append_cstr(b, "if (");
+
+    _emit_c(b, cond->expression);
+    str_builder_append_cstr(b, ") {\n");
+    _emit_body(b, cond->body);
+    str_builder_append_cstr(b, "} ");
+
+    for (size_t i = 0; i < cond->elsifs_count; i++) {
+        _emit_elsif(b, cond->elsifs + i);
+    }
+
+    str_builder_append_cstr(b, "\n");
+}
+
+static void _emit_elsif(struct str_builder *b, struct analyzable_elsif *cond)
+{
+    str_builder_append_cstr(b, "else if (");
+
+    _emit_c(b, cond->expression);
+
+    str_builder_append_cstr(b, ") {\n");
+    _emit_body(b, cond->body);
+    str_builder_append_cstr(b, "} ");
+}
+
 
 
 
@@ -275,6 +311,12 @@ static void _emit_pointer(struct str_builder *b, struct ast *ptr)
 static void _emit_body(struct str_builder *b, struct ast *body)
 {
     struct ast *iter = body;
+
+    if (iter != NULL && iter->type != STATEMENT) {
+        bool res = _emit_c(b, body);
+        if (res)
+            str_builder_append_cstr(b, ";\n");
+    }
 
     while (iter != NULL && iter->type == STATEMENT) {
         bool res = _emit_c(b, iter->u.statement.current);
